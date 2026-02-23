@@ -10,13 +10,22 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
+import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.draw.paint
 import androidx.compose.ui.draw.rotate
@@ -26,12 +35,15 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,16 +88,10 @@ fun DashboardScreen() {
         label = "AnimacaoTemperatura"
     )
 
-    // =========================================================
-    // ODÓMETRO AGORA COMEÇA NO 0!
-    // =========================================================
     var odometro by remember { mutableFloatStateOf(0f) }
     var autonomia by remember { mutableFloatStateOf(200f) }
     var consumo by remember { mutableFloatStateOf(0f) }
 
-    // =========================================================
-    // NOVO ESTADO: A CARREGAR BATERIA
-    // =========================================================
     var aCarregar by remember { mutableStateOf(false) }
 
     val bateriaPercentagem = (autonomia / 200f) * 100f
@@ -108,11 +114,10 @@ fun DashboardScreen() {
 
     LaunchedEffect(Unit) {
         while (true) {
-            // Lógica de Carregamento Rápido
             if (aCarregar) {
-                autonomia = minOf(200f, autonomia + 2.5f) // Carrega a bateria rapidamente
+                autonomia = minOf(200f, autonomia + 2.5f)
                 if (autonomia >= 200f) {
-                    aCarregar = false // Desliga a ficha automaticamente quando chega aos 100%
+                    aCarregar = false
                 }
             }
 
@@ -165,7 +170,7 @@ fun DashboardScreen() {
                 motoLigada = motoLigada,
                 velocidadeTarget = velocidadeTarget,
                 bateriaPercentagem = bateriaPercentagem,
-                aCarregar = aCarregar, // Passamos o estado para mudar a cor da barra
+                aCarregar = aCarregar,
                 onMotoLigadaChange = { motoLigada = it },
                 onMarchaChange = { marcha = it },
                 onVelocidadeTargetChange = { velocidadeTarget = it },
@@ -374,16 +379,12 @@ private fun MainContentSection(
                             }
                             true
                         }
-                        // =========================================================
-                        // TECLA C PARA CARREGAR: Só funciona com mota parada
-                        // =========================================================
                         Key.C -> {
                             if (velocidadeAnimada < 1f) {
                                 onToggleCarga()
                             }
                             true
                         }
-                        // O acelerador bloqueia se estiveres ligado à tomada (aCarregar = true)
                         Key.W -> {
                             if (motoLigada && bateriaPercentagem > 0f && !aCarregar) {
                                 onVelocidadeTargetChange(minOf(120f, velocidadeTarget + 5f))
@@ -474,9 +475,6 @@ private fun MainContentSection(
                     val cutYBat = (size.height - 20.dp.toPx()) - ((size.height - 40.dp.toPx()) * progressBat)
 
                     clipRect(top = cutYBat) {
-                        // =========================================================
-                        // Cor fica AZUL (Ciano) se estiver ligada à corrente!
-                        // =========================================================
                         val corBateria = when {
                             aCarregar -> Color(0xFF00D4FF)
                             bateriaPercentagem <= 20f -> Color.Red
@@ -584,15 +582,134 @@ private fun BottomBarSection(
 ) {
     val modes = listOf("Eco", "Standard", "Sport")
 
+    val sideBoxWidth = 430.dp
+    val sideBoxHeight = 80.dp
+
+    // =========================================================
+    // Estados para simular a música a tocar na barra de progresso
+    // =========================================================
+    var isPlaying by remember { mutableStateOf(true) }
+    var musicProgress by remember { mutableFloatStateOf(0.3f) }
+
+    LaunchedEffect(isPlaying) {
+        while (isPlaying) {
+            delay(1000)
+            musicProgress += 0.005f // Avança um bocadinho a cada segundo
+            if (musicProgress > 1f) musicProgress = 0f
+        }
+    }
+
     Box(modifier = modifier.fillMaxWidth()) {
-        Row(modifier = Modifier.align(Alignment.BottomStart).padding(start = 32.dp, bottom = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(modifier = Modifier.size(40.dp).background(Color.DarkGray))
-            Spacer(modifier = Modifier.width(10.dp))
-            Column {
-                Text("In The End", color = Color.White, fontSize = 16.sp, fontFamily = agencyFb)
-                Text("Linkin Park", color = Color.Gray, fontSize = 12.sp, fontFamily = agencyFb)
+
+        // =========================================================
+        // ESQUERDA: SECÇÃO DE MÚSICA (COM CONTROLOS)
+        // =========================================================
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .size(width = sideBoxWidth, height = sideBoxHeight),
+            contentAlignment = Alignment.CenterStart
+        ) {
+            // Fundo
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .graphicsLayer { scaleX = -1f }
+                    .paint(
+                        painter = painterResource(id = R.drawable.fundo_menu),
+                        contentScale = ContentScale.FillBounds
+                    )
+            )
+
+            // Layout Interior
+            Row(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 32.dp, end = 24.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // 1. Capa Redonda da Música
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .background(color = Color.DarkGray, shape = CircleShape)
+                        .clip(CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Image(
+                        painter = painterResource(id = R.drawable.ic_musica_fundo),
+                        contentDescription = "Capa da Música",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(16.dp))
+
+                // 2. Textos e Barra de Progresso
+                Column(
+                    modifier = Modifier.weight(1f), // Ocupa o espaço central disponível
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "In The End",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontFamily = agencyFb,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = "Linkin Park",
+                        color = Color.LightGray,
+                        fontSize = 14.sp,
+                        fontFamily = agencyFb,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Barra de Progresso Linear
+                    LinearProgressIndicator(
+                        progress = musicProgress,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(2.dp),
+                        color = Color.White,
+                        trackColor = Color.DarkGray
+                    )
+                }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // 3. Botões de Controlo
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) {
+                        Icon(imageVector = Icons.Filled.SkipPrevious, contentDescription = "Anterior", tint = Color.White)
+                    }
+                    IconButton(onClick = { isPlaying = !isPlaying }, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                            contentDescription = "Play/Pause",
+                            tint = Color.White,
+                            modifier = Modifier.size(32.dp) // O botão de play/pause é ligeiramente maior
+                        )
+                    }
+                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) {
+                        Icon(imageVector = Icons.Filled.SkipNext, contentDescription = "Seguinte", tint = Color.White)
+                    }
+                }
             }
         }
+
+        // =========================================================
+        // CENTRO: MODO DE CONDUÇÃO
+        // =========================================================
         Row(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = { onModeChange(if (modeIdx - 1 < 0) modes.size - 1 else modeIdx - 1) }) {
                 Icon(painter = painterResource(id = R.drawable.ic_seta_esquerda), contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
@@ -602,15 +719,42 @@ private fun BottomBarSection(
                 Icon(painter = painterResource(id = R.drawable.ic_seta_direita), contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
             }
         }
+
+        // =========================================================
+        // DIREITA: MENU DE ÍCONES
+        // =========================================================
         Box(
-            modifier = Modifier.align(Alignment.BottomEnd).paint(painterResource(id = R.drawable.fundo_menu), contentScale = ContentScale.FillBounds),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .size(width = sideBoxWidth, height = sideBoxHeight)
+                .paint(painterResource(id = R.drawable.fundo_menu), contentScale = ContentScale.FillBounds),
             contentAlignment = Alignment.Center
         ) {
-            Row(modifier = Modifier.padding(start = 80.dp, end = 32.dp, top = 20.dp, bottom = 20.dp), horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier.padding(start = 80.dp, end = 32.dp),
+                horizontalArrangement = Arrangement.spacedBy(40.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 listOf(R.drawable.ic_bluetooth, R.drawable.ic_settings, R.drawable.ic_phone, R.drawable.ic_nav).forEach { icon ->
-                    IconButton(onClick = { }) { Icon(painter = painterResource(id = icon), contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp)) }
+                    IconButton(onClick = { }) {
+                        Icon(painter = painterResource(id = icon), contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                    }
                 }
             }
         }
     }
+}
+
+// =========================================================
+// PREVIEW
+// =========================================================
+@Preview(
+    showBackground = true,
+    widthDp = 1280,
+    heightDp = 720,
+    name = "Dashboard Preview"
+)
+@Composable
+fun DashboardScreenPreview() {
+    DashboardScreen()
 }
