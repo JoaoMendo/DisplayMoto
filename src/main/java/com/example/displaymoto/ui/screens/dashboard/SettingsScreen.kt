@@ -3,8 +3,8 @@ package com.example.displaymoto.ui.screens.dashboard
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
+import android.provider.Settings
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -27,6 +27,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.displaymoto.R
@@ -76,7 +77,7 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
                     }
                 }
 
-                // 2. Regulador de Brilho FÍSICO
+                // 2. Regulador de Brilho FÍSICO (Material 3)
                 Box(modifier = Modifier.weight(2f), contentAlignment = Alignment.Center) {
                     var nivelBrilho by remember { mutableFloatStateOf(0.5f) }
 
@@ -98,6 +99,7 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
 
                         Spacer(modifier = Modifier.width(16.dp))
 
+                        // Slider
                         Slider(
                             value = nivelBrilho,
                             onValueChange = { nivelBrilho = it },
@@ -138,7 +140,7 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
             Spacer(modifier = Modifier.height(32.dp))
 
             // ==========================================
-            // LISTA DE DEFINIÇÕES (DESIGN DA IMAGEM)
+            // LISTA DE DEFINIÇÕES (COM SCROLL)
             // ==========================================
             Column(
                 modifier = Modifier
@@ -148,7 +150,6 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
 
                 LinhaDivisoria()
 
-                // ITEM 1: BLUETOOTH
                 SettingItem(
                     titulo = "BLUETOOTH",
                     subtitulo = "Manage phone and intercom connections"
@@ -156,7 +157,6 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
 
                 LinhaDivisoria()
 
-                // ITEM 2: CONECT MYFULGORA
                 SettingItem(
                     titulo = "CONECT MYFULGORA",
                     subtitulo = "Sync your motorcycle with the official app"
@@ -164,7 +164,6 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
 
                 LinhaDivisoria()
 
-                // ITEM 3: COLOUR
                 SettingItem(
                     titulo = "COLOUR",
                     subtitulo = "Customize the dashboard theme color"
@@ -179,7 +178,6 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
 
                 LinhaDivisoria()
 
-                // ITEM 4: LANGUAGE
                 SettingItem(
                     titulo = "LANGUAGE",
                     subtitulo = "Select the system display language"
@@ -193,7 +191,6 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
 
                 LinhaDivisoria()
 
-                // ITEM 5: PERSONALIZATION
                 SettingItem(
                     titulo = "PERSONALIZATION",
                     subtitulo = "Adjust display, units and layout preferences"
@@ -201,7 +198,6 @@ fun SettingsContentSection(onVoltar: () -> Unit, modifier: Modifier = Modifier) 
 
                 LinhaDivisoria()
 
-                // ITEM 6: ABOUT THE MOTORCYCLE
                 SettingItem(
                     titulo = "ABOUT THE MOTORCYCLE",
                     subtitulo = "System information, software updates and details"
@@ -225,13 +221,12 @@ fun LinhaDivisoria() {
     )
 }
 
-// Um componente único e limpo para todas as linhas da lista
 @Composable
 fun SettingItem(titulo: String, subtitulo: String, conteudoDireita: @Composable () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* Ação de clique a implementar no futuro */ }
+            .clickable { /* Ação de clique */ }
             .padding(vertical = 12.dp, horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
