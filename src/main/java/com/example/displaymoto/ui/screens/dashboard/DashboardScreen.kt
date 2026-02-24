@@ -8,6 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -42,6 +43,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
@@ -57,6 +59,13 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
+
+// =========================================================
+// 1. DEFINIÇÃO DOS VÁRIOS ECRÃS DISPONÍVEIS
+// =========================================================
+enum class Ecrans {
+    DASHBOARD, SETTINGS, BLUETOOTH, PHONE, NAVIGATION
+}
 
 @Composable
 fun DashboardScreen() {
@@ -75,6 +84,11 @@ fun DashboardScreen() {
     var velocidadeTarget by remember { mutableFloatStateOf(0f) }
 
     var modeIdx by remember { mutableIntStateOf(1) }
+
+    // =========================================================
+    // 2. ESTADO QUE CONTROLA QUAL ECRÃ MOSTRAR NO CENTRO
+    // =========================================================
+    var ecraAtual by remember { mutableStateOf(Ecrans.DASHBOARD) }
 
     val velocidadeAnimadaState = animateFloatAsState(
         targetValue = if (motoLigada) velocidadeTarget else 0f,
@@ -154,6 +168,7 @@ fun DashboardScreen() {
                 .fillMaxSize()
                 .background(azulFundo)
         ) {
+            // A BARRA SUPERIOR FICA SEMPRE IGUAL
             TopBarSection(
                 luz1 = luz1, luz2 = luz2, luz3 = luz3, luz4 = luz4,
                 piscaEsqLigado = piscaEsquerdo,
@@ -163,49 +178,77 @@ fun DashboardScreen() {
                     .padding(start = 32.dp, end = 32.dp, top = 0.dp, bottom = 0.dp)
             )
 
-            MainContentSection(
-                velocidadeAnimada = velocidadeAnimadaState.value,
-                tempAnimada = tempAnimadaState.value,
-                marcha = marcha,
-                motoLigada = motoLigada,
-                velocidadeTarget = velocidadeTarget,
-                bateriaPercentagem = bateriaPercentagem,
-                aCarregar = aCarregar,
-                onMotoLigadaChange = { motoLigada = it },
-                onMarchaChange = { marcha = it },
-                onVelocidadeTargetChange = { velocidadeTarget = it },
-                onToggleLuz1 = { luz1 = !luz1 },
-                onToggleLuz2 = { luz2 = !luz2 },
-                onToggleLuz3 = { luz3 = !luz3 },
-                onToggleLuz4 = { luz4 = !luz4 },
-                onTogglePiscaEsq = {
-                    piscaEsquerdo = !piscaEsquerdo
-                    if (piscaEsquerdo) piscaDireito = false
-                },
-                onTogglePiscaDir = {
-                    piscaDireito = !piscaDireito
-                    if (piscaDireito) piscaEsquerdo = false
-                },
-                onToggleCarga = {
-                    aCarregar = !aCarregar
-                },
-                modifier = Modifier
-                    .weight(0.63f)
-                    .padding(horizontal = 32.dp)
-            )
+            // =========================================================
+            // 3. MUDAR O CONTEÚDO CENTRAL DEPENDENDO DO ECRÃ SELECIONADO
+            // =========================================================
+            when (ecraAtual) {
+                Ecrans.DASHBOARD -> {
+                    MainContentSection(
+                        velocidadeAnimada = velocidadeAnimadaState.value,
+                        tempAnimada = tempAnimadaState.value,
+                        marcha = marcha,
+                        motoLigada = motoLigada,
+                        velocidadeTarget = velocidadeTarget,
+                        bateriaPercentagem = bateriaPercentagem,
+                        aCarregar = aCarregar,
+                        onMotoLigadaChange = { motoLigada = it },
+                        onMarchaChange = { marcha = it },
+                        onVelocidadeTargetChange = { velocidadeTarget = it },
+                        onToggleLuz1 = { luz1 = !luz1 },
+                        onToggleLuz2 = { luz2 = !luz2 },
+                        onToggleLuz3 = { luz3 = !luz3 },
+                        onToggleLuz4 = { luz4 = !luz4 },
+                        onTogglePiscaEsq = {
+                            piscaEsquerdo = !piscaEsquerdo
+                            if (piscaEsquerdo) piscaDireito = false
+                        },
+                        onTogglePiscaDir = {
+                            piscaDireito = !piscaDireito
+                            if (piscaDireito) piscaEsquerdo = false
+                        },
+                        onToggleCarga = { aCarregar = !aCarregar },
+                        modifier = Modifier
+                            .weight(0.63f)
+                            .padding(horizontal = 32.dp)
+                    )
 
-            InfoBarSection(
-                odometro = odometro,
-                autonomia = autonomia,
-                consumo = consumo,
-                modifier = Modifier
-                    .weight(0.1f)
-                    .padding(horizontal = 32.dp)
-            )
+                    InfoBarSection(
+                        odometro = odometro,
+                        autonomia = autonomia,
+                        consumo = consumo,
+                        modifier = Modifier
+                            .weight(0.1f)
+                            .padding(horizontal = 32.dp)
+                    )
+                }
 
+                Ecrans.SETTINGS -> {
+                    // O Novo Ecrã de Definições!
+                    SettingsContentSection(
+                        onVoltar = { ecraAtual = Ecrans.DASHBOARD },
+                        modifier = Modifier
+                            .weight(0.73f) // Ocupa o espaço do MainContent + InfoBar
+                            .padding(horizontal = 32.dp, vertical = 16.dp)
+                    )
+                }
+
+                // Para os outros botões, mostramos uma página temporária (Em construção)
+                else -> {
+                    EmConstrucaoSection(
+                        nomeDoEcra = ecraAtual.name,
+                        onVoltar = { ecraAtual = Ecrans.DASHBOARD },
+                        modifier = Modifier
+                            .weight(0.73f)
+                            .padding(horizontal = 32.dp, vertical = 16.dp)
+                    )
+                }
+            }
+
+            // A BARRA INFERIOR FICA SEMPRE IGUAL (E RECEBE OS CLIQUES)
             BottomBarSection(
                 modeIdx = modeIdx,
                 onModeChange = { novoModo -> modeIdx = novoModo },
+                onMenuClick = { novoEcra -> ecraAtual = novoEcra }, // Enviamos o clique para atualizar o estado
                 modifier = Modifier.weight(0.15f)
             )
         }
@@ -235,6 +278,57 @@ fun DashboardScreen() {
         }
     }
 }
+
+// =========================================================
+// NOVAS SECÇÕES CRIADAS PARA OS MENUS
+// =========================================================
+
+
+
+@Composable
+fun DefinicaoItem(titulo: String, subtitulo: String) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(Color(0xFF1E2140), RoundedCornerShape(12.dp))
+            .padding(20.dp)
+    ) {
+        Text(titulo, color = Color.White, fontSize = 28.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+        Text(subtitulo, color = Color.LightGray, fontSize = 20.sp, fontFamily = agencyFb)
+    }
+}
+
+@Composable
+fun EmConstrucaoSection(nomeDoEcra: String, onVoltar: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color(0xFF15172E), RoundedCornerShape(24.dp))
+            .padding(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(painter = painterResource(id = R.drawable.ic_abs), contentDescription = null, tint = Color.Gray, modifier = Modifier.size(80.dp))
+            Spacer(modifier = Modifier.height(24.dp))
+            Text("ECRÃ ${nomeDoEcra} EM DESENVOLVIMENTO", color = Color.White, fontSize = 42.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(40.dp))
+            Box(
+                modifier = Modifier
+                    .clickable { onVoltar() }
+                    .background(Color(0xFF00D4FF), RoundedCornerShape(12.dp))
+                    .padding(horizontal = 48.dp, vertical = 12.dp)
+            ) {
+                Text("VOLTAR ATRÁS", color = Color.Black, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+
+// =========================================================
+// O RESTO DOS SEUS COMPONENTES ESTÃO IGUAIS ABAIXO
+// (Com a alteração do BottomBarSection para enviar os cliques!)
+// =========================================================
 
 @Composable
 private fun TopBarSection(
@@ -578,6 +672,7 @@ private fun InfoBarSection(
 private fun BottomBarSection(
     modeIdx: Int,
     onModeChange: (Int) -> Unit,
+    onMenuClick: (Ecrans) -> Unit, // <--- NOVO: Recebe o comando de qual ecrã abrir
     modifier: Modifier = Modifier
 ) {
     val modes = listOf("Eco", "Standard", "Sport")
@@ -585,16 +680,13 @@ private fun BottomBarSection(
     val sideBoxWidth = 430.dp
     val sideBoxHeight = 80.dp
 
-    // =========================================================
-    // Estados para simular a música a tocar na barra de progresso
-    // =========================================================
     var isPlaying by remember { mutableStateOf(true) }
-    var musicProgress by remember { mutableFloatStateOf(0.3f) }
+    var musicProgress by remember { mutableStateOf(0.3f) }
 
     LaunchedEffect(isPlaying) {
         while (isPlaying) {
             delay(1000)
-            musicProgress += 0.005f // Avança um bocadinho a cada segundo
+            musicProgress += 0.005f
             if (musicProgress > 1f) musicProgress = 0f
         }
     }
@@ -602,7 +694,7 @@ private fun BottomBarSection(
     Box(modifier = modifier.fillMaxWidth()) {
 
         // =========================================================
-        // ESQUERDA: SECÇÃO DE MÚSICA (COM CONTROLOS)
+        // ESQUERDA: SECÇÃO DE MÚSICA
         // =========================================================
         Box(
             modifier = Modifier
@@ -610,7 +702,6 @@ private fun BottomBarSection(
                 .size(width = sideBoxWidth, height = sideBoxHeight),
             contentAlignment = Alignment.CenterStart
         ) {
-            // Fundo
             Box(
                 modifier = Modifier
                     .matchParentSize()
@@ -621,14 +712,12 @@ private fun BottomBarSection(
                     )
             )
 
-            // Layout Interior
             Row(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(start = 32.dp, end = 24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // 1. Capa Redonda da Música
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -646,9 +735,8 @@ private fun BottomBarSection(
 
                 Spacer(modifier = Modifier.width(16.dp))
 
-                // 2. Textos e Barra de Progresso
                 Column(
-                    modifier = Modifier.weight(1f), // Ocupa o espaço central disponível
+                    modifier = Modifier.weight(1f),
                     verticalArrangement = Arrangement.Center
                 ) {
                     Text(
@@ -671,7 +759,6 @@ private fun BottomBarSection(
 
                     Spacer(modifier = Modifier.height(6.dp))
 
-                    // Barra de Progresso Linear
                     LinearProgressIndicator(
                         progress = musicProgress,
                         modifier = Modifier
@@ -684,7 +771,6 @@ private fun BottomBarSection(
 
                 Spacer(modifier = Modifier.width(12.dp))
 
-                // 3. Botões de Controlo
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
@@ -697,7 +783,7 @@ private fun BottomBarSection(
                             imageVector = if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
                             contentDescription = "Play/Pause",
                             tint = Color.White,
-                            modifier = Modifier.size(32.dp) // O botão de play/pause é ligeiramente maior
+                            modifier = Modifier.size(32.dp)
                         )
                     }
                     IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) {
@@ -721,7 +807,7 @@ private fun BottomBarSection(
         }
 
         // =========================================================
-        // DIREITA: MENU DE ÍCONES
+        // DIREITA: MENU DE ÍCONES (COM CLIQUE ATIVADO!)
         // =========================================================
         Box(
             modifier = Modifier
@@ -735,9 +821,18 @@ private fun BottomBarSection(
                 horizontalArrangement = Arrangement.spacedBy(40.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                listOf(R.drawable.ic_bluetooth, R.drawable.ic_settings, R.drawable.ic_phone, R.drawable.ic_nav).forEach { icon ->
-                    IconButton(onClick = { }) {
-                        Icon(painter = painterResource(id = icon), contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
+                // Aqui associamos cada ícone ao seu ecrã respetivo!
+                val iconesDoMenu = listOf(
+                    R.drawable.ic_bluetooth to Ecrans.BLUETOOTH,
+                    R.drawable.ic_settings to Ecrans.SETTINGS,
+                    R.drawable.ic_phone to Ecrans.PHONE,
+                    R.drawable.ic_nav to Ecrans.NAVIGATION
+                )
+
+                iconesDoMenu.forEach { (iconId, qualEcra) ->
+                    // Quando clica, avisa o ecrã principal para mudar a página!
+                    IconButton(onClick = { onMenuClick(qualEcra) }) {
+                        Icon(painter = painterResource(id = iconId), contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
                     }
                 }
             }
