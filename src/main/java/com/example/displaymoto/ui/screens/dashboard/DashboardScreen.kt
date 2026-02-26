@@ -1,6 +1,8 @@
 @file:Suppress("UNUSED_VALUE", "SpellCheckingInspection", "UnusedImport")
 package com.example.displaymoto.ui.screens.dashboard
 
+import android.content.Intent
+import android.provider.Settings
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -37,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -58,9 +61,10 @@ import java.util.*
 val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
 
 @Composable
-fun DashboardScreen(onNavigateToSettings: () -> Unit = {}) {
-    val azulFundo = Color(0xFF0D0F26)
-
+fun DashboardScreen(
+    corFundoAtual: Color = Color(0xFF0D0F26), // RECEBE A COR DINÂMICA AQUI!
+    onNavigateToSettings: () -> Unit = {}
+) {
     var luz1 by remember { mutableStateOf(false) }
     var luz2 by remember { mutableStateOf(false) }
     var luz3 by remember { mutableStateOf(false) }
@@ -151,7 +155,7 @@ fun DashboardScreen(onNavigateToSettings: () -> Unit = {}) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(azulFundo)
+                .background(corFundoAtual) // APLICA A COR DINÂMICA AO FUNDO!
         ) {
             TopBarSection(
                 luz1 = luz1, luz2 = luz2, luz3 = luz3, luz4 = luz4,
@@ -281,7 +285,7 @@ private fun TopBarSection(
 
     Box(modifier = modifier.fillMaxWidth().fillMaxHeight()) {
 
-        Row(modifier = Modifier.align(Alignment.CenterStart).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+        Row(modifier = Modifier.align(Alignment.TopStart).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(text = "$currentTime PM  |  ☁ $currentTemp", color = Color.White, fontSize = 32.sp, fontFamily = agencyFb)
         }
 
@@ -325,7 +329,7 @@ private fun TopBarSection(
             }
         }
 
-        Row(modifier = Modifier.align(Alignment.CenterEnd).padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
+        Row(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
             val luzes = listOf(R.drawable.ic_luz_verde to luz1, R.drawable.ic_luz_cinza to luz2, R.drawable.ic_abs to luz3, R.drawable.ic_motor to luz4)
             luzes.forEach { (id, ativa) ->
                 Icon(
@@ -440,7 +444,7 @@ private fun MainContentSection(
                 BarraTermicaSVG(
                     modifier = Modifier.align(Alignment.BottomStart).offset(x = 20.dp, y = 10.dp).rotate(-3f).size(125.dp),
                     progresso = tempAnimada,
-                    svgId = R.drawable.ic_temp_motor
+                    svgId = R.drawable.ic_temp_motor_dash
                 )
                 EscalaTempTexto("100", (-15).dp, 250.dp)
                 EscalaTempTexto("50", 15.dp, 290.dp)
@@ -494,7 +498,7 @@ private fun MainContentSection(
                 BarraTermicaSVG(
                     modifier = Modifier.align(Alignment.BottomEnd).offset(x = (-20).dp, y = 10.dp).rotate(3f).size(125.dp),
                     progresso = tempAnimada,
-                    svgId = R.drawable.ic_temp_bat
+                    svgId = R.drawable.ic_temp_bat_dash
                 )
                 EscalaTempTexto("100", 275.dp, 250.dp)
                 EscalaTempTexto("50", 235.dp, 290.dp)
@@ -581,6 +585,7 @@ private fun BottomBarSection(
     onNavigateToSettings: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
     val modes = listOf("Eco", "Standard", "Sport")
 
     val sideBoxWidth = 430.dp
@@ -720,9 +725,16 @@ private fun BottomBarSection(
             ) {
                 listOf(R.drawable.ic_bluetooth, R.drawable.ic_settings, R.drawable.ic_phone, R.drawable.ic_nav).forEach { icon ->
                     IconButton(onClick = {
-                        // Navegação acontece aqui ao clicar na roda dentada
-                        if (icon == R.drawable.ic_settings) {
-                            onNavigateToSettings()
+                        when (icon) {
+                            R.drawable.ic_settings -> onNavigateToSettings()
+                            R.drawable.ic_bluetooth -> {
+                                try {
+                                    val intent = Intent(Settings.ACTION_BLUETOOTH_SETTINGS)
+                                    context.startActivity(intent)
+                                } catch (e: Exception) {
+                                    e.printStackTrace()
+                                }
+                            }
                         }
                     }) {
                         Icon(painter = painterResource(id = icon), contentDescription = null, tint = Color.White, modifier = Modifier.size(36.dp))
@@ -732,10 +744,6 @@ private fun BottomBarSection(
         }
     }
 }
-
-
-
-
 
 @Preview(
     showBackground = true,
