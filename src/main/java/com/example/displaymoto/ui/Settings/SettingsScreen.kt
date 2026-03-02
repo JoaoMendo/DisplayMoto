@@ -61,12 +61,14 @@ val AzulClaro = Color(0xFF00BFFF)
 fun SettingsScreen(
     velocidadeAtual: Int = 0,
     bateriaAtual: Int = 85,
+    aCarregarAtual: Boolean = false,
     tempBateriaAtual: Int = 30,
     tempMotorAtual: Int = 80,
     marchaAtual: String = "N",
     corFundoAtual: Color = Color(0xFF0D0F26),
     onCorFundoChange: (Color) -> Unit = {},
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onNavigateToPersonalization: () -> Unit = {}
 ) {
     var showColorLibrary by remember { mutableStateOf(false) }
     var piscaEsquerdo by remember { mutableStateOf(false) }
@@ -142,10 +144,11 @@ fun SettingsScreen(
                 onVoltar = onNavigateBack,
                 onCorSelecionada = onCorFundoChange,
                 onOpenLibrary = { showColorLibrary = true },
+                onNavigateToPersonalization = onNavigateToPersonalization,
                 modifier = Modifier.weight(0.73f).fillMaxWidth()
             )
 
-            BottomStatusSection(velocidadeAtual, bateriaAtual, tempBateriaAtual, tempMotorAtual, marchaAtual, Modifier.weight(0.15f))
+            BottomStatusSection(velocidadeAtual, bateriaAtual, tempBateriaAtual, tempMotorAtual, marchaAtual, aCarregarAtual, Modifier.weight(0.15f))
         }
 
         if (showColorLibrary) {
@@ -193,6 +196,7 @@ fun SettingsContentSection(
     onVoltar: () -> Unit,
     onCorSelecionada: (Color) -> Unit,
     onOpenLibrary: () -> Unit,
+    onNavigateToPersonalization: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -250,7 +254,7 @@ fun SettingsContentSection(
                     }
                 }
                 LinhaDivisoria()
-                SettingItem("PERSONALIZATION", "Adjust display, units and layout preferences") {}
+                SettingItem("PERSONALIZATION", "Adjust display, units and layout preferences", onClick = onNavigateToPersonalization) {}
                 LinhaDivisoria()
                 SettingItem("ABOUT THE MOTORCYCLE", "System information, software updates and details") {}
                 LinhaDivisoria()
@@ -260,7 +264,13 @@ fun SettingsContentSection(
 }
 
 @Composable
-fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, modifier: Modifier) {
+fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, isCharging: Boolean = false, modifier: Modifier = Modifier) {
+    val corBateria = when {
+        isCharging -> Color(0xFF00D4FF)
+        b <= 20 -> Color.Red
+        else -> Color(0xFF00FF7F)
+    }
+
     Row(modifier = modifier.fillMaxWidth().background(Color(0xFF8B8E94)).padding(horizontal = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("$v KM/H", color = Color.White, fontSize = 42.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
@@ -273,7 +283,7 @@ fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, modifier: M
             Text("$b%", color = Color.White, fontSize = 42.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
             Spacer(Modifier.width(16.dp))
             Box(modifier = Modifier.width(180.dp).height(20.dp).clip(ParallelogramShape(30f)).background(Color.White.copy(alpha = 0.5f))) {
-                Box(modifier = Modifier.fillMaxWidth(b / 100f).fillMaxHeight().background(Color(0xFF00FF7F)))
+                Box(modifier = Modifier.fillMaxWidth(b / 100f).fillMaxHeight().background(corBateria))
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
@@ -333,7 +343,7 @@ fun HueBar(onColorChanged: (Color) -> Unit) {
 }
 
 @Composable
-fun SettingItem(titulo: String, subtitulo: String, onClick: () -> Unit = {}, conteudo: @Composable () -> Unit) {
+fun SettingItem(titulo: String, subtitulo: String, onClick: () -> Unit = {}, conteudo: @Composable () -> Unit = {}) {
     Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 12.dp, horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Column(modifier = Modifier.weight(1f)) {
             Text(titulo, color = Color.White, fontSize = 28.sp, fontFamily = agencyFbFont)

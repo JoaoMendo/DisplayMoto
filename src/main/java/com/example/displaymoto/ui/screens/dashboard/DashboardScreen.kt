@@ -62,7 +62,10 @@ val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
 
 @Composable
 fun DashboardScreen(
-    corFundoAtual: Color = Color(0xFF0D0F26), // RECEBE A COR DINÂMICA AQUI!
+    corFundoAtual: Color = Color(0xFF0D0F26),
+    autonomiaInicial: Float = 200f,
+    aCarregarInicial: Boolean = false,
+    onBateriaChange: (Float, Boolean) -> Unit = { _, _ -> },
     onNavigateToSettings: () -> Unit = {}
 ) {
     var luz1 by remember { mutableStateOf(false) }
@@ -92,10 +95,15 @@ fun DashboardScreen(
     )
 
     var odometro by remember { mutableFloatStateOf(0f) }
-    var autonomia by remember { mutableFloatStateOf(200f) }
+    var autonomia by remember { mutableFloatStateOf(autonomiaInicial) }
     var consumo by remember { mutableFloatStateOf(0f) }
 
-    var aCarregar by remember { mutableStateOf(false) }
+    var aCarregar by remember { mutableStateOf(aCarregarInicial) }
+
+    // Enviar dados atualizados para a MainActivity
+    LaunchedEffect(autonomia, aCarregar) {
+        onBateriaChange(autonomia, aCarregar)
+    }
 
     val bateriaPercentagem = (autonomia / 200f) * 100f
 
@@ -155,7 +163,7 @@ fun DashboardScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(corFundoAtual) // APLICA A COR DINÂMICA AO FUNDO!
+                .background(corFundoAtual)
         ) {
             TopBarSection(
                 luz1 = luz1, luz2 = luz2, luz3 = luz3, luz4 = luz4,
