@@ -30,17 +30,12 @@ fun EditIconsScreen(velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boo
     BaseSettingsScreen(velocidadeAtual = velocidadeAtual, bateriaAtual = bateriaAtual, aCarregarAtual = aCarregarAtual, tempBateriaAtual = tempBateriaAtual, tempMotorAtual = tempMotorAtual, marchaAtual = marchaAtual, corFundoAtual = corFundoAtual, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = onNavigateBack, title = "EDIT ICONS")
 }
 
-// =========================================================================================
-// O MOLDE BASE (PARTILHADO)
-// =========================================================================================
-
 @Composable
 fun BaseSettingsScreen(
     velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boolean, tempBateriaAtual: Int, tempMotorAtual: Int, marchaAtual: String,
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String,
     onNavigateBack: () -> Unit, title: String
 ) {
-    // MOTOR DE ACESSIBILIDADE PARTILHADO
     val isLightBg = corPersonalizada.luminance() > 0.5f
     val corDestaque = when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
@@ -91,9 +86,9 @@ fun BaseSettingsScreen(
                 }
             } else false
         }) {
-            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
+            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.wrapContentHeight())
 
-            Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(32.dp)) {
+            Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         Text(text = title, color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
@@ -108,7 +103,7 @@ fun BaseSettingsScreen(
 
             BottomStatusSection(
                 v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual,
-                corDestaque = corDestaque, textColor = primaryText, modifier = Modifier.weight(0.15f)
+                corDestaque = corDestaque, textColor = primaryText, modifier = Modifier.wrapContentHeight()
             )
         }
     }

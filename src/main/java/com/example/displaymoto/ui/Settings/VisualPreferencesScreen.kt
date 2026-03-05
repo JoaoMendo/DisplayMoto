@@ -3,6 +3,7 @@ package com.example.displaymoto.ui.screens.dashboard.settings
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,6 +19,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.displaymoto.LocalAnimationMultiplier // Importamos o nosso multiplicador!
 import com.example.displaymoto.ui.screens.dashboard.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -30,11 +32,12 @@ import java.util.*
 @Composable
 fun VisualPreferencesScreen(
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
-    corFundoAtual: Color,
-    corPersonalizada: Color,
-    currentContrast: String,
-    onContrastChange: (String) -> Unit,
-    onNavigateBack: () -> Unit
+    corFundoAtual: Color, corPersonalizada: Color, currentContrast: String, textSizeScale: Float,
+    currentColorFilter: String, currentTextSpacing: String,
+    currentAnimations: String, // NOVO
+    onAnimationsChange: (String) -> Unit, // NOVO
+    onTextSpacingChange: (String) -> Unit, onColorFilterChange: (String) -> Unit,
+    onTextSizeChange: (Float) -> Unit, onContrastChange: (String) -> Unit, onNavigateBack: () -> Unit
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
 
@@ -66,9 +69,30 @@ fun VisualPreferencesScreen(
     var currentTime by remember { mutableStateOf("--:--") }
     var currentTemp by remember { mutableStateOf("--ºC") }
 
-    LaunchedEffect(piscaEsquerdo, piscaDireito) {
-        if (piscaEsquerdo || piscaDireito) while (true) { piscaPulso = true; delay(400); piscaPulso = false; delay(400) }
+    // O nosso multiplicador importado em tempo real!
+    val animScale = LocalAnimationMultiplier.current
+
+    LaunchedEffect(piscaEsquerdo, piscaDireito, animScale) {
+        if (piscaEsquerdo || piscaDireito) {
+            while (true) {
+                piscaPulso = true
+                // Se o scale for 0.001f (OFF), o delay original de 400ms passa a ser ~0ms!
+                // O pisca ficará aceso fixo em vez de piscar para não causar enjoo.
+                val delayTime = (400 * (if (animScale < 0.1f) 1000f else animScale)).toLong()
+
+                if (animScale < 0.1f) {
+                    delay(100000L) // Se for OFF, fica fixo ligado sem piscar!
+                } else {
+                    delay(delayTime)
+                    piscaPulso = false
+                    delay(delayTime)
+                }
+            }
+        } else {
+            piscaPulso = false
+        }
     }
+
     LaunchedEffect(Unit) {
         while (true) { currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("Europe/Lisbon") }.format(Date()); delay(1000) }
     }
@@ -94,28 +118,23 @@ fun VisualPreferencesScreen(
                 }
             } else false
         }) {
-            TopBarSectionSettings(currentTime, currentTemp, piscaEsquerdo, piscaDireito, piscaPulso, luz1, luz2, luz3, luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
+            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
 
             val scrollState = rememberScrollState()
 
-            Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(32.dp)) {
+            Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
                         Text(text = "VISUAL PREFERENCES", color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
                         Text(text = "BACK", color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
 
-                    Spacer(Modifier.height(32.dp))
+                    Spacer(Modifier.height(16.dp))
 
-                    Column(modifier = Modifier.weight(1f).verticalScroll(scrollState)) {
+                    Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
                         LinhaDivisoria(accentColor)
-
-                        // CORREÇÃO: Usamos parâmetros explicitamente nomeados para garantir que não há trocas!
                         SettingItem(
-                            titulo = "CONTRAST",
-                            subtitulo = "Adjust the display contrast ratio",
-                            primaryColor = primaryText,
-                            secondaryColor = secondaryText,
+                            titulo = "CONTRAST", subtitulo = "Adjust the display contrast ratio", primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(text = "STANDARD", color = if (currentContrast == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onContrastChange("STANDARD") })
@@ -128,18 +147,74 @@ fun VisualPreferencesScreen(
                         )
 
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "TEXT SIZE", subtitulo = "Change the system text size", primaryColor = primaryText, secondaryColor = secondaryText)
+                        SettingItem(
+                            titulo = "TEXT SIZE", subtitulo = "Change the system text size", primaryColor = primaryText, secondaryColor = secondaryText,
+                            conteudo = {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.45f)) {
+                                    Slider(value = textSizeScale, onValueChange = onTextSizeChange, valueRange = 1f..2f, colors = SliderDefaults.colors(thumbColor = accentColor, activeTrackColor = accentColor, inactiveTrackColor = primaryText.copy(alpha = 0.3f)), modifier = Modifier.weight(1f))
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(text = "${(textSizeScale * 100).toInt()}%", color = primaryText, fontSize = 32.sp, fontFamily = agencyFbFont)
+                                }
+                            }
+                        )
 
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "COLOR FILTERS", subtitulo = "Apply filters for color blindness or preference", primaryColor = primaryText, secondaryColor = secondaryText)
+
+                        val filtersScrollState = rememberScrollState()
+                        SettingItem(
+                            titulo = "COLOR FILTERS",
+                            subtitulo = "Apply filters for color blindness or preference",
+                            primaryColor = primaryText,
+                            secondaryColor = secondaryText,
+                            conteudo = {
+                                Box(modifier = Modifier.fillMaxWidth(0.6f), contentAlignment = Alignment.CenterEnd) {
+                                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(filtersScrollState)) {
+                                        Text(text = "OFF", color = if (currentColorFilter == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("OFF") })
+                                        Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
+                                        Text(text = "GRAY SCALE", color = if (currentColorFilter == "GRAY SCALE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("GRAY SCALE") })
+                                        Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
+                                        Text(text = "DEUTERANOPIA", color = if (currentColorFilter == "DEUTERANOPIA") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("DEUTERANOPIA") })
+                                        Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
+                                        Text(text = "PROTANOPIA", color = if (currentColorFilter == "PROTANOPIA") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("PROTANOPIA") })
+                                    }
+                                }
+                            }
+                        )
 
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "TEXT SPACING", subtitulo = "Adjust spacing between letters and lines", primaryColor = primaryText, secondaryColor = secondaryText)
+                        SettingItem(
+                            titulo = "TEXT SPACING", subtitulo = "Adjust spacing between letters and lines", primaryColor = primaryText, secondaryColor = secondaryText,
+                            conteudo = {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(text = "STANDARD", color = if (currentTextSpacing == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTextSpacingChange("STANDARD") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
+                                    Text(text = "EXPANDED", color = if (currentTextSpacing == "EXPANDED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTextSpacingChange("EXPANDED") })
+                                }
+                            }
+                        )
 
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "ANIMATIONS", subtitulo = "Reduce or disable system animations", primaryColor = primaryText, secondaryColor = secondaryText)
+
+                        // NOVO: Bloco das Animações WCAG
+                        SettingItem(
+                            titulo = "ANIMATIONS",
+                            subtitulo = "Reduce or disable system animations",
+                            primaryColor = primaryText,
+                            secondaryColor = secondaryText,
+                            conteudo = {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Text(text = "ON", color = if (currentAnimations == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("ON") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
+                                    Text(text = "REDUCED", color = if (currentAnimations == "REDUCED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("REDUCED") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
+                                    Text(text = "OFF", color = if (currentAnimations == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("OFF") })
+                                }
+                            }
+                        )
 
                         LinhaDivisoria(accentColor)
+
+                        Spacer(Modifier.height(32.dp))
                     }
                 }
             }
