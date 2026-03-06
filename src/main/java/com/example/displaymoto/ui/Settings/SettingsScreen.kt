@@ -40,6 +40,10 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -62,13 +66,10 @@ val AzulClaro = Color(0xFF00BFFF)
 @Composable
 fun SettingsScreen(
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "N",
-    corFundoAtual: Color,
-    corPersonalizada: Color = Color(0xFF0D0F26),
-    currentContrast: String = "STANDARD",
+    corFundoAtual: Color, corPersonalizada: Color = Color(0xFF0D0F26), currentContrast: String = "STANDARD",
     onCorFundoChange: (Color) -> Unit = {}, onNavigateBack: () -> Unit = {}, onNavigateToPersonalization: () -> Unit = {}
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
-
     val corDestaque = when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
@@ -124,11 +125,8 @@ fun SettingsScreen(
                 }
             } else false
         }) {
-            // Usa as percentagens e posições RIGOROSAMENTE IGUAIS à Dashboard (12%, 73%, 15%)
             TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
-
-            SettingsContentSection(onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onOpenLibrary = { showColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f).fillMaxWidth())
-
+            SettingsContentSection(onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onOpenLibrary = { showColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
             BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = corDestaque, textColor = primaryText, modifier = Modifier.weight(0.15f))
         }
 
@@ -139,32 +137,48 @@ fun SettingsScreen(
 }
 
 // ==================================================================================================
-// COMPONENTES DA INTERFACE - O CLONE PERFEITO DA DASHBOARD!
+// COMPONENTES DA INTERFACE (COM ACESSIBILIDADE WCAG / TALKBACK)
 // ==================================================================================================
 
 @Composable
 fun TopBarSectionSettings(currentTime: String, currentTemp: String, pEsq: Boolean, pDir: Boolean, pPulso: Boolean, l1: Boolean, l2: Boolean, l3: Boolean, l4: Boolean, textColor: Color = Color.White, modifier: Modifier = Modifier) {
-    // 100% igual à Dashboard: Estrutura em Box, alinhamentos absolutos e padding de 32.dp integrado!
     Box(modifier = modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = 32.dp)) {
 
-        // HORAS E TEMPERATURA (Alinhado à Esquerda)
+        // HORAS E TEMPERATURA
+        // O TalkBack vai ler isto automaticamente como um bloco de texto.
         Row(modifier = Modifier.align(Alignment.TopStart).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(text = "$currentTime PM  |  ☁ $currentTemp", color = textColor, fontSize = 32.sp, fontFamily = agencyFbFont)
+            Text(text = "$currentTime PM  |  ☁ $currentTemp", color = textColor, fontSize = 32.sp, fontFamily = agencyFbFont, modifier = Modifier.semantics { contentDescription = "Current time $currentTime PM, Weather $currentTemp" })
         }
 
-        // PISCAS (Centro absoluto, caixa exata de 440x100.dp)
+        // PISCAS
         Box(modifier = Modifier.align(Alignment.TopCenter).width(440.dp).height(100.dp), contentAlignment = Alignment.Center) {
+            // A moldura é decorativa, por isso mantemos null
             Image(painter = painterResource(id = R.drawable.border_piscas), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             Row(horizontalArrangement = Arrangement.spacedBy(50.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
-                Icon(painter = painterResource(id = R.drawable.ic_seta_dir), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(80.dp).rotate(180f).alpha(if (pEsq && pPulso) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_seta_dir), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(80.dp).alpha(if (pDir && pPulso) 1f else 0f))
+                // AQUI TEMOS ACESSIBILIDADE: Se o pisca estiver ativo, o TalkBack avisa! Se não estiver, o TalkBack ignora.
+                Icon(painter = painterResource(id = R.drawable.ic_seta_dir), contentDescription = if (pEsq && pPulso) "Left turn signal active" else null, tint = Color.Unspecified, modifier = Modifier.size(80.dp).rotate(180f).alpha(if (pEsq && pPulso) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_seta_dir), contentDescription = if (pDir && pPulso) "Right turn signal active" else null, tint = Color.Unspecified, modifier = Modifier.size(80.dp).alpha(if (pDir && pPulso) 1f else 0f))
             }
         }
 
-        // LUZES DE AVISO (Alinhado à Direita)
+        // LUZES DE AVISO (Motor, ABS, etc)
         Row(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            listOf(R.drawable.ic_luz_verde to l1, R.drawable.ic_luz_cinza to l2, R.drawable.ic_abs to l3, R.drawable.ic_motor to l4).forEach { (id, active) ->
-                Icon(painter = painterResource(id = id), contentDescription = null, tint = if (active) Color.Unspecified else Color.Transparent, modifier = Modifier.size(48.dp).alpha(if (active) 1f else 0f))
+            // Mapeamos cada luz para a sua descrição de acessibilidade
+            val iconesAcessiveis = listOf(
+                Triple(R.drawable.ic_luz_verde, l1, "Green indicator light"),
+                Triple(R.drawable.ic_luz_cinza, l2, "Neutral gear light"),
+                Triple(R.drawable.ic_abs, l3, "A B S warning light"),
+                Triple(R.drawable.ic_motor, l4, "Engine warning light")
+            )
+
+            iconesAcessiveis.forEach { (id, active, descricao) ->
+                Icon(
+                    painter = painterResource(id = id),
+                    // Se estiver acesa, o TalkBack avisa o condutor. Se estiver apagada, fica invisível para o leitor.
+                    contentDescription = if (active) "$descricao is on" else null,
+                    tint = if (active) Color.Unspecified else Color.Transparent,
+                    modifier = Modifier.size(48.dp).alpha(if (active) 1f else 0f)
+                )
             }
         }
     }
@@ -175,37 +189,44 @@ fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, isCharging:
     val corBateria = when { isCharging -> corDestaque; b <= 20 -> Color.Red; else -> Color(0xFF00FF7F) }
 
     Row(modifier = modifier.fillMaxWidth().background(Color(0xFF8B8E94)).padding(horizontal = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("$v KM/H", color = textColor, fontSize = 42.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
+        // Velocidade (TalkBack vai ler o texto diretamente, a barra não precisa de descrição extra)
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
+            Text("$v KM/H", color = textColor, fontSize = 42.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { contentDescription = "Speed $v kilometers per hour" })
             Spacer(Modifier.width(16.dp))
             Box(modifier = Modifier.width(180.dp).height(20.dp).clip(ParallelogramShape(30f)).background(Color.White.copy(alpha = 0.5f))) {
                 Box(modifier = Modifier.fillMaxWidth(v / 120f).fillMaxHeight().background(corDestaque))
             }
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("$b%", color = textColor, fontSize = 42.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
+        // Bateria
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
+            val statusBateria = if (isCharging) "charging" else ""
+            Text("$b%", color = textColor, fontSize = 42.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { contentDescription = "Battery at $b percent $statusBateria" })
             Spacer(Modifier.width(16.dp))
             Box(modifier = Modifier.width(180.dp).height(20.dp).clip(ParallelogramShape(30f)).background(Color.White.copy(alpha = 0.5f))) {
                 Box(modifier = Modifier.fillMaxWidth(b / 100f).fillMaxHeight().background(corBateria))
             }
         }
+        // Temperaturas e Marcha
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(painterResource(id = R.drawable.ic_temp_bat_set), null, tint = textColor, modifier = Modifier.size(42.dp))
+                // AQUI: Descrevemos o ícone para cegos saberem do que se trata a temperatura
+                Icon(painterResource(id = R.drawable.ic_temp_bat_set), contentDescription = "Battery temperature", tint = textColor, modifier = Modifier.size(42.dp))
                 Text("${tB}º", color = textColor, fontSize = 42.sp, fontFamily = agencyFbFont, modifier = Modifier.padding(start = 8.dp))
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(painterResource(id = R.drawable.ic_temp_motor_set), null, tint = textColor, modifier = Modifier.size(42.dp))
+                // AQUI: Descrevemos o ícone do motor
+                Icon(painterResource(id = R.drawable.ic_temp_motor_set), contentDescription = "Engine temperature", tint = textColor, modifier = Modifier.size(42.dp))
                 Text("${tM}º", color = textColor, fontSize = 42.sp, fontFamily = agencyFbFont, modifier = Modifier.padding(start = 8.dp))
             }
-            Text(m, color = textColor, fontSize = 50.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp))
+            Text(m, color = textColor, fontSize = 50.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold, modifier = Modifier.padding(start = 10.dp).semantics { contentDescription = "Current gear $m" })
         }
     }
 }
 
 @Composable
 fun SettingItem(titulo: String, subtitulo: String, primaryColor: Color = Color.White, secondaryColor: Color = Color.Gray, onClick: () -> Unit = {}, conteudo: @Composable () -> Unit = {}) {
-    Row(modifier = Modifier.fillMaxWidth().clickable { onClick() }.padding(vertical = 12.dp, horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+    // Adicionamos Role.Button para o Android saber que isto é clicável e dar o som de feedback correto
+    Row(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open $titulo setting", role = Role.Button) { onClick() }.padding(vertical = 12.dp, horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
             Text(titulo, color = primaryColor, fontSize = 28.sp, fontFamily = agencyFbFont)
             Text(subtitulo, color = secondaryColor, fontSize = 18.sp, fontFamily = agencyFbFont)
@@ -223,8 +244,9 @@ fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Un
         Column(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
+                    // Aqui mantemos null porque a palavra "SETTINGS" está logo ao lado. Dizer "Settings Icon, Settings" seria erro.
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(painterResource(id = R.drawable.ic_settings), null, tint = primaryText, modifier = Modifier.size(40.dp))
+                        Icon(painterResource(id = R.drawable.ic_settings), contentDescription = null, tint = primaryText, modifier = Modifier.size(40.dp))
                         Spacer(Modifier.width(16.dp))
                         Text("SETTINGS", color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont)
                     }
@@ -232,8 +254,9 @@ fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Un
                 Box(modifier = Modifier.weight(2f), contentAlignment = Alignment.Center) {
                     var nivelBrilho by remember { mutableFloatStateOf(0.5f) }
                     LaunchedEffect(nivelBrilho) { activity?.window?.let { it.attributes = it.attributes.apply { screenBrightness = nivelBrilho } } }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(Icons.Filled.BrightnessHigh, null, tint = primaryText, modifier = Modifier.size(28.dp))
+                    // A barra de brilho ganha semântica para ser anunciada como controlo de ecrã
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "Screen brightness slider" }) {
+                        Icon(Icons.Filled.BrightnessHigh, contentDescription = null, tint = primaryText, modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(16.dp))
                         Slider(value = nivelBrilho, onValueChange = { nivelBrilho = it }, modifier = Modifier.width(200.dp), colors = SliderDefaults.colors(thumbColor = corDestaque, activeTrackColor = corDestaque, inactiveTrackColor = primaryText.copy(alpha = 0.3f)))
                         Spacer(Modifier.width(16.dp))
@@ -241,7 +264,8 @@ fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Un
                     }
                 }
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    Text("BACK", color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onVoltar() }.padding(8.dp))
+                    // Botão BACK agora tem a Role certa
+                    Text("BACK", color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable(role = Role.Button, onClickLabel = "Go back") { onVoltar() }.padding(8.dp))
                 }
             }
 
@@ -255,10 +279,10 @@ fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Un
                 LinhaDivisoria(corDestaque)
                 SettingItem(titulo = "COLOUR", subtitulo = "Tap for full library or pick a shortcut", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onOpenLibrary, conteudo = {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                        CirculoCor(Color(0xFF0D0F26)) { onCorSelecionada(Color(0xFF0D0F26)) }
-                        CirculoCor(Color.Red) { onCorSelecionada(Color.Red) }
-                        CirculoCor(Color.Green) { onCorSelecionada(Color.Green) }
-                        Text("MORE+", color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable { onOpenLibrary() })
+                        CirculoCor(Color(0xFF0D0F26), "Default Dark Blue") { onCorSelecionada(Color(0xFF0D0F26)) }
+                        CirculoCor(Color.Red, "Red") { onCorSelecionada(Color.Red) }
+                        CirculoCor(Color.Green, "Green") { onCorSelecionada(Color.Green) }
+                        Text("MORE+", color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable(role = Role.Button) { onOpenLibrary() })
                     }
                 })
                 LinhaDivisoria(corDestaque)
@@ -298,7 +322,10 @@ fun HueBar(onColorChanged: (Color) -> Unit) {
 }
 
 @Composable
-fun CirculoCor(cor: Color, onClick: () -> Unit) { Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(cor).border(2.dp, Color.White, CircleShape).clickable { onClick() }) }
+fun CirculoCor(cor: Color, colorName: String, onClick: () -> Unit) {
+    // AQUI TAMBÉM: Damos nome à cor para cegos saberem no que tocam
+    Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(cor).border(2.dp, Color.White, CircleShape).semantics { contentDescription = "Color $colorName"; role = Role.Button }.clickable { onClick() })
+}
 
 @Composable
 fun LinhaDivisoria(corDestaque: Color = AzulClaro) { HorizontalDivider(color = corDestaque, thickness = 2.dp) }

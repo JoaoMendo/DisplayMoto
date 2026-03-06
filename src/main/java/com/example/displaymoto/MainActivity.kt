@@ -27,7 +27,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.example.displaymoto.ui.screens.dashboard.*
 import com.example.displaymoto.ui.screens.dashboard.settings.*
 
-// NOVO: Criamos a variável global invisível que controla a velocidade de todas as animações
 val LocalAnimationMultiplier = compositionLocalOf { 1f }
 
 enum class MotoScreen {
@@ -51,14 +50,30 @@ class MainActivity : ComponentActivity() {
             var corPersonalizadaArgb by rememberSaveable { mutableIntStateOf(android.graphics.Color.parseColor("#0D0F26")) }
             val corPersonalizada = Color(corPersonalizadaArgb)
 
+            // Memória Visual
             var currentContrast by rememberSaveable { mutableStateOf("STANDARD") }
             var isIaActivatedGlobal by rememberSaveable { mutableStateOf(true) }
             var textSizeScale by rememberSaveable { mutableFloatStateOf(1f) }
             var currentColorFilter by rememberSaveable { mutableStateOf("OFF") }
             var currentTextSpacing by rememberSaveable { mutableStateOf("STANDARD") }
-
-            // NOVO: Memória do estado das Animações
             var currentAnimations by rememberSaveable { mutableStateOf("ON") }
+
+            // Memória Touch (NOVO)
+            var currentTouchArea by rememberSaveable { mutableStateOf("STANDARD") }
+            var currentMethod by rememberSaveable { mutableStateOf("DIRECT TOUCH") }
+            var currentResponseTime by rememberSaveable { mutableStateOf("MEDIUM") }
+            var currentErrorPrevention by rememberSaveable { mutableStateOf("ON") }
+
+            // Memória Cognitiva (NOVO)
+            var currentLanguage by rememberSaveable { mutableStateOf("STANDARD") }
+            var currentDensity by rememberSaveable { mutableStateOf("STANDARD") }
+            var currentHelp by rememberSaveable { mutableStateOf("ON DEMAND") }
+            var currentAlerts by rememberSaveable { mutableStateOf("STANDARD") }
+
+            // Memória Audio & Haptics (NOVO)
+            var currentFeedback by rememberSaveable { mutableStateOf("BOTH") }
+            var currentVisualAlerts by rememberSaveable { mutableStateOf("ON") }
+            var currentErrorFeedback by rememberSaveable { mutableStateOf("HAPTIC BOOST") }
 
             var autonomiaGlobal by rememberSaveable { mutableFloatStateOf(200f) }
             var aCarregarGlobal by rememberSaveable { mutableStateOf(false) }
@@ -76,7 +91,6 @@ class MainActivity : ComponentActivity() {
                 else -> corPersonalizada
             }
 
-            // MATRIZ DE DALTONISMO
             val modifierComFiltro = if (currentColorFilter == "OFF") {
                 Modifier.fillMaxSize()
             } else {
@@ -106,9 +120,8 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
-            // MAGIA DE ACESSIBILIDADE WCAG
-            val currentDensity = LocalDensity.current
-            val customDensity = Density(density = currentDensity.density, fontScale = currentDensity.fontScale * textSizeScale)
+            val currentDensityVal = LocalDensity.current
+            val customDensity = Density(density = currentDensityVal.density, fontScale = currentDensityVal.fontScale * textSizeScale)
 
             val baseTextStyle = LocalTextStyle.current
             val customTextStyle = if (currentTextSpacing == "EXPANDED") {
@@ -117,15 +130,13 @@ class MainActivity : ComponentActivity() {
                 baseTextStyle
             }
 
-            // NOVO: Cálculo do multiplicador com base no botão escolhido
             val animationScale = when (currentAnimations) {
                 "ON" -> 1f
                 "REDUCED" -> 0.5f
-                "OFF" -> 0.001f // Usamos 0.001f em vez de 0 para evitar erros matemáticos do Android, mas aos olhos humanos é instantâneo!
+                "OFF" -> 0.001f
                 else -> 1f
             }
 
-            // Injetamos Tamanho, Espaçamento e Velocidade das Animações na App Inteira!
             CompositionLocalProvider(
                 LocalDensity provides customDensity,
                 LocalTextStyle provides customTextStyle,
@@ -136,19 +147,14 @@ class MainActivity : ComponentActivity() {
                         MotoScreen.DASHBOARD -> DashboardScreen(corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, autonomiaInicial = autonomiaGlobal, aCarregarInicial = aCarregarGlobal, onBateriaChange = { auto, carregando -> autonomiaGlobal = auto; aCarregarGlobal = carregando }, onNavigateToSettings = { currentScreenName = MotoScreen.SETTINGS.name })
                         MotoScreen.SETTINGS -> SettingsScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onCorFundoChange = { novaCor -> corPersonalizadaArgb = novaCor.toArgb(); currentContrast = "STANDARD" }, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, onNavigateToPersonalization = { currentScreenName = MotoScreen.PERSONALIZATION.name })
                         MotoScreen.PERSONALIZATION -> PersonalizationSettings(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, isIaActivated = isIaActivatedGlobal, onIaChange = { isIaActivatedGlobal = it }, onNavigateBack = { currentScreenName = MotoScreen.SETTINGS.name }, onNavigateToVisual = { currentScreenName = MotoScreen.VISUAL_PREFERENCES.name }, onNavigateToTouch = { currentScreenName = MotoScreen.TOUCH.name }, onNavigateToCognitive = { currentScreenName = MotoScreen.COGNITIVE_ASSISTANT.name }, onNavigateToAudio = { currentScreenName = MotoScreen.AUDIO_HAPTICS.name }, onNavigateToEditIcons = { currentScreenName = MotoScreen.EDIT_ICONS.name })
+                        MotoScreen.VISUAL_PREFERENCES -> VisualPreferencesScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, textSizeScale = textSizeScale, currentColorFilter = currentColorFilter, currentTextSpacing = currentTextSpacing, onTextSpacingChange = { currentTextSpacing = it }, currentAnimations = currentAnimations, onAnimationsChange = { currentAnimations = it }, onColorFilterChange = { currentColorFilter = it }, onTextSizeChange = { textSizeScale = it }, onContrastChange = { currentContrast = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
 
-                        MotoScreen.VISUAL_PREFERENCES -> VisualPreferencesScreen(
-                            velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota,
-                            corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, textSizeScale = textSizeScale, currentColorFilter = currentColorFilter,
-                            currentTextSpacing = currentTextSpacing, onTextSpacingChange = { currentTextSpacing = it },
-                            currentAnimations = currentAnimations, // NOVO
-                            onAnimationsChange = { currentAnimations = it }, // NOVO
-                            onColorFilterChange = { currentColorFilter = it }, onTextSizeChange = { textSizeScale = it }, onContrastChange = { currentContrast = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }
-                        )
+                        MotoScreen.TOUCH -> TouchScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentTouchArea = currentTouchArea, onTouchAreaChange = { currentTouchArea = it }, currentMethod = currentMethod, onMethodChange = { currentMethod = it }, currentResponseTime = currentResponseTime, onResponseTimeChange = { currentResponseTime = it }, currentErrorPrevention = currentErrorPrevention, onErrorPreventionChange = { currentErrorPrevention = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
 
-                        MotoScreen.TOUCH -> TouchScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
-                        MotoScreen.COGNITIVE_ASSISTANT -> CognitiveAssistantScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
-                        MotoScreen.AUDIO_HAPTICS -> AudioHapticsScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+                        MotoScreen.COGNITIVE_ASSISTANT -> CognitiveAssistantScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentLanguage = currentLanguage, onLanguageChange = { currentLanguage = it }, currentDensity = currentDensity, onDensityChange = { currentDensity = it }, currentHelp = currentHelp, onHelpChange = { currentHelp = it }, currentAlerts = currentAlerts, onAlertsChange = { currentAlerts = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+
+                        MotoScreen.AUDIO_HAPTICS -> AudioHapticsScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentFeedback = currentFeedback, onFeedbackChange = { currentFeedback = it }, currentVisualAlerts = currentVisualAlerts, onVisualAlertsChange = { currentVisualAlerts = it }, currentErrorFeedback = currentErrorFeedback, onErrorFeedbackChange = { currentErrorFeedback = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+
                         MotoScreen.EDIT_ICONS -> EditIconsScreen(velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
                     }
                 }
