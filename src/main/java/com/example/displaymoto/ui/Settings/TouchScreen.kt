@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.displaymoto.AppStrings
 import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,7 @@ import java.util.*
 
 @Composable
 fun TouchScreen(
+    s: AppStrings,
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String,
     currentTouchArea: String, onTouchAreaChange: (String) -> Unit,
@@ -120,56 +122,56 @@ fun TouchScreen(
             Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "TOUCH SETTINGS", color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text(text = "BACK", color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(text = s.touchSettingsTitle, color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
+                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
 
                     Spacer(Modifier.height(16.dp))
 
                     Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "TOUCH AREAS", subtitulo = "Adjust the minimum target size for interactive elements", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.touchAreasTitle, subtitulo = s.touchAreasDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "STANDARD", color = if (currentTouchArea == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentTouchArea == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "LARGE", color = if (currentTouchArea == "LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("LARGE") })
+                                    Text(text = s.large, color = if (currentTouchArea == "LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("LARGE") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "EXTRA LARGE", color = if (currentTouchArea == "EXTRA LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("EXTRA LARGE") })
+                                    Text(text = s.extraLarge, color = if (currentTouchArea == "EXTRA LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("EXTRA LARGE") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "METHOD OF ENTRY", subtitulo = "Choose your preferred way to interact with the system", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.methodTitle, subtitulo = s.methodDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "DIRECT TOUCH", color = if (currentMethod == "DIRECT TOUCH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("DIRECT TOUCH") })
+                                    Text(text = s.directTouch, color = if (currentMethod == "DIRECT TOUCH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("DIRECT TOUCH") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "SWIPE", color = if (currentMethod == "SWIPE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("SWIPE") })
+                                    Text(text = s.swipe, color = if (currentMethod == "SWIPE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("SWIPE") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "JOYSTICK", color = if (currentMethod == "JOYSTICK") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("JOYSTICK") })
+                                    Text(text = s.joystick, color = if (currentMethod == "JOYSTICK") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("JOYSTICK") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "RESPONSE TIME", subtitulo = "Set the delay required to register a touch action", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.responseTimeTitle, subtitulo = s.responseTimeDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "FAST", color = if (currentResponseTime == "FAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("FAST") })
+                                    Text(text = s.fast, color = if (currentResponseTime == "FAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("FAST") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "MEDIUM", color = if (currentResponseTime == "MEDIUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("MEDIUM") })
+                                    Text(text = s.medium, color = if (currentResponseTime == "MEDIUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("MEDIUM") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "SLOW", color = if (currentResponseTime == "SLOW") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("SLOW") })
+                                    Text(text = s.slow, color = if (currentResponseTime == "SLOW") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("SLOW") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "ERROR PREVENTION", subtitulo = "Require confirmation dialogs for critical actions", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.errorPreventionTitle, subtitulo = s.errorPreventionDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "ON", color = if (currentErrorPrevention == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorPreventionChange("ON") })
+                                    Text(text = s.on, color = if (currentErrorPrevention == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorPreventionChange("ON") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "OFF", color = if (currentErrorPrevention == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorPreventionChange("OFF") })
+                                    Text(text = s.off, color = if (currentErrorPrevention == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorPreventionChange("OFF") })
                                 }
                             }
                         )

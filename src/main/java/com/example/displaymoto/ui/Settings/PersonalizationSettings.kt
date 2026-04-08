@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.displaymoto.AppStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -29,6 +30,7 @@ import java.util.*
 
 @Composable
 fun PersonalizationSettings(
+    s: AppStrings,
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String = "STANDARD",
     isIaActivated: Boolean, onIaChange: (Boolean) -> Unit, onNavigateBack: () -> Unit,
@@ -92,7 +94,7 @@ fun PersonalizationSettings(
             // PROPORÇÕES 100% CORRIGIDAS! (12% Topo, 73% Meio, 15% Base)
             TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f).padding(horizontal = 32.dp))
 
-            PersonalizationContentSection(onVoltar = onNavigateBack, onNavVisual = onNavigateToVisual, onNavTouch = onNavigateToTouch, onNavCognitive = onNavigateToCognitive, onNavAudio = onNavigateToAudio, onNavEditIcons = onNavigateToEditIcons, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, isIaActivated = isIaActivated, onIaChange = onIaChange, modifier = Modifier.weight(0.73f).fillMaxWidth())
+            PersonalizationContentSection(s = s, onVoltar = onNavigateBack, onNavVisual = onNavigateToVisual, onNavTouch = onNavigateToTouch, onNavCognitive = onNavigateToCognitive, onNavAudio = onNavigateToAudio, onNavEditIcons = onNavigateToEditIcons, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, isIaActivated = isIaActivated, onIaChange = onIaChange, modifier = Modifier.weight(0.73f).fillMaxWidth())
 
             BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = corDestaque, textColor = primaryText, modifier = Modifier.weight(0.15f))
         }
@@ -100,33 +102,33 @@ fun PersonalizationSettings(
 }
 
 @Composable
-fun PersonalizationContentSection(onVoltar: () -> Unit, onNavVisual: () -> Unit, onNavTouch: () -> Unit, onNavCognitive: () -> Unit, onNavAudio: () -> Unit, onNavEditIcons: () -> Unit, corDestaque: Color, primaryText: Color, secondaryText: Color, isIaActivated: Boolean, onIaChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+fun PersonalizationContentSection(s: AppStrings, onVoltar: () -> Unit, onNavVisual: () -> Unit, onNavTouch: () -> Unit, onNavCognitive: () -> Unit, onNavAudio: () -> Unit, onNavEditIcons: () -> Unit, corDestaque: Color, primaryText: Color, secondaryText: Color, isIaActivated: Boolean, onIaChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     val scrollState = rememberScrollState()
 
     Box(modifier = modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 16.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(modifier = Modifier.fillMaxWidth()) {
-                Text(text = "PERSONALIZATION", color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                Text(text = "BACK", color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onVoltar() }.padding(8.dp))
+                Text(text = s.persTitle, color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
+                Text(text = s.back, color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onVoltar() }.padding(8.dp))
             }
 
             Spacer(Modifier.height(16.dp))
 
             Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "ACTIVATE ADAPTATION IA", subtitulo = "Enable AI-driven interface adjustments", primaryColor = primaryText, secondaryColor = secondaryText, onClick = { onIaChange(!isIaActivated) }, conteudo = {
+                SettingItem(titulo = s.activateIaTitle, subtitulo = s.activateIaDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = { onIaChange(!isIaActivated) }, conteudo = {
                     Checkbox(checked = isIaActivated, onCheckedChange = { onIaChange(it) }, colors = CheckboxDefaults.colors(checkedColor = corDestaque, uncheckedColor = secondaryText, checkmarkColor = Color.Black), modifier = Modifier.scale(1.3f))
                 })
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "VISUAL PREFERENCES", subtitulo = "Adjust contrast, text size and layout colors", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavVisual)
+                SettingItem(titulo = s.visualPrefTitle, subtitulo = s.visualPrefDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavVisual)
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "TOUCH", subtitulo = "Configure screen sensitivity and gestures", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavTouch)
+                SettingItem(titulo = s.touchTitle, subtitulo = s.touchDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavTouch)
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "COGNITIVE ASSISTANT", subtitulo = "Simplify interface and provide guidance", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavCognitive)
+                SettingItem(titulo = s.cognitiveTitle, subtitulo = s.cognitiveDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavCognitive)
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "AUDIO AND HAPTICS", subtitulo = "Manage sound feedback and vibrations", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavAudio)
+                SettingItem(titulo = s.audioHapticsTitle, subtitulo = s.audioHapticsDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavAudio)
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "EDIT ICONS", subtitulo = "Customize dashboard layout and icon positions", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavEditIcons)
+                SettingItem(titulo = s.editIconsTitle, subtitulo = s.editIconsDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavEditIcons)
                 LinhaDivisoria(corDestaque)
 
                 Spacer(Modifier.height(32.dp))

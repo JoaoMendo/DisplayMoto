@@ -19,7 +19,8 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.displaymoto.LocalAnimationMultiplier // Importamos o nosso multiplicador!
+import com.example.displaymoto.AppStrings
+import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -31,6 +32,7 @@ import java.util.*
 
 @Composable
 fun VisualPreferencesScreen(
+    s: AppStrings,
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String, textSizeScale: Float,
     currentColorFilter: String, currentTextSpacing: String,
@@ -125,8 +127,8 @@ fun VisualPreferencesScreen(
             Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "VISUAL PREFERENCES", color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text(text = "BACK", color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(text = s.visualPrefTitle, color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
+                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
 
                     Spacer(Modifier.height(16.dp))
@@ -134,21 +136,21 @@ fun VisualPreferencesScreen(
                     Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
                         LinhaDivisoria(accentColor)
                         SettingItem(
-                            titulo = "CONTRAST", subtitulo = "Adjust the display contrast ratio", primaryColor = primaryText, secondaryColor = secondaryText,
+                            titulo = s.contrastTitle, subtitulo = s.contrastDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "STANDARD", color = if (currentContrast == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onContrastChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentContrast == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onContrastChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "HIGH CONTRAST", color = if (currentContrast == "HIGH CONTRAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onContrastChange("HIGH CONTRAST") })
+                                    Text(text = s.highContrast, color = if (currentContrast == "HIGH CONTRAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onContrastChange("HIGH CONTRAST") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "NIGHT MODE", color = if (currentContrast == "NIGHT MODE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onContrastChange("NIGHT MODE") })
+                                    Text(text = s.nightMode, color = if (currentContrast == "NIGHT MODE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onContrastChange("NIGHT MODE") })
                                 }
                             }
                         )
 
                         LinhaDivisoria(accentColor)
                         SettingItem(
-                            titulo = "TEXT SIZE", subtitulo = "Change the system text size", primaryColor = primaryText, secondaryColor = secondaryText,
+                            titulo = s.textSizeTitle, subtitulo = s.textSizeDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.45f)) {
                                     Slider(value = textSizeScale, onValueChange = onTextSizeChange, valueRange = 1f..2f, colors = SliderDefaults.colors(thumbColor = accentColor, activeTrackColor = accentColor, inactiveTrackColor = primaryText.copy(alpha = 0.3f)), modifier = Modifier.weight(1f))
@@ -162,16 +164,16 @@ fun VisualPreferencesScreen(
 
                         val filtersScrollState = rememberScrollState()
                         SettingItem(
-                            titulo = "COLOR FILTERS",
-                            subtitulo = "Apply filters for color blindness or preference",
+                            titulo = s.colorFiltersTitle,
+                            subtitulo = s.colorFiltersDesc,
                             primaryColor = primaryText,
                             secondaryColor = secondaryText,
                             conteudo = {
                                 Box(modifier = Modifier.fillMaxWidth(0.6f), contentAlignment = Alignment.CenterEnd) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(filtersScrollState)) {
-                                        Text(text = "OFF", color = if (currentColorFilter == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("OFF") })
+                                        Text(text = s.off, color = if (currentColorFilter == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("OFF") })
                                         Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                        Text(text = "GRAY SCALE", color = if (currentColorFilter == "GRAY SCALE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("GRAY SCALE") })
+                                        Text(text = s.grayScale, color = if (currentColorFilter == "GRAY SCALE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("GRAY SCALE") })
                                         Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
                                         Text(text = "DEUTERANOPIA", color = if (currentColorFilter == "DEUTERANOPIA") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onColorFilterChange("DEUTERANOPIA") })
                                         Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
@@ -183,31 +185,30 @@ fun VisualPreferencesScreen(
 
                         LinhaDivisoria(accentColor)
                         SettingItem(
-                            titulo = "TEXT SPACING", subtitulo = "Adjust spacing between letters and lines", primaryColor = primaryText, secondaryColor = secondaryText,
+                            titulo = s.textSpacingTitle, subtitulo = s.textSpacingDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "STANDARD", color = if (currentTextSpacing == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTextSpacingChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentTextSpacing == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTextSpacingChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "EXPANDED", color = if (currentTextSpacing == "EXPANDED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTextSpacingChange("EXPANDED") })
+                                    Text(text = s.expanded, color = if (currentTextSpacing == "EXPANDED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTextSpacingChange("EXPANDED") })
                                 }
                             }
                         )
 
                         LinhaDivisoria(accentColor)
 
-                        // NOVO: Bloco das Animações WCAG
                         SettingItem(
-                            titulo = "ANIMATIONS",
-                            subtitulo = "Reduce or disable system animations",
+                            titulo = s.animationsTitle,
+                            subtitulo = s.animationsDesc,
                             primaryColor = primaryText,
                             secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "ON", color = if (currentAnimations == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("ON") })
+                                    Text(text = s.on, color = if (currentAnimations == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("ON") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "REDUCED", color = if (currentAnimations == "REDUCED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("REDUCED") })
+                                    Text(text = s.reduced, color = if (currentAnimations == "REDUCED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("REDUCED") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "OFF", color = if (currentAnimations == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("OFF") })
+                                    Text(text = s.off, color = if (currentAnimations == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAnimationsChange("OFF") })
                                 }
                             }
                         )

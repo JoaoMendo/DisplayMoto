@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.displaymoto.AppStrings
 import com.example.displaymoto.ui.screens.dashboard.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -26,12 +27,13 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun EditIconsScreen(velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boolean, tempBateriaAtual: Int, tempMotorAtual: Int, marchaAtual: String, corFundoAtual: Color, corPersonalizada: Color, currentContrast: String, onNavigateBack: () -> Unit) {
-    BaseSettingsScreen(velocidadeAtual = velocidadeAtual, bateriaAtual = bateriaAtual, aCarregarAtual = aCarregarAtual, tempBateriaAtual = tempBateriaAtual, tempMotorAtual = tempMotorAtual, marchaAtual = marchaAtual, corFundoAtual = corFundoAtual, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = onNavigateBack, title = "EDIT ICONS")
+fun EditIconsScreen(s: AppStrings, velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boolean, tempBateriaAtual: Int, tempMotorAtual: Int, marchaAtual: String, corFundoAtual: Color, corPersonalizada: Color, currentContrast: String, onNavigateBack: () -> Unit) {
+    BaseSettingsScreen(s = s, velocidadeAtual = velocidadeAtual, bateriaAtual = bateriaAtual, aCarregarAtual = aCarregarAtual, tempBateriaAtual = tempBateriaAtual, tempMotorAtual = tempMotorAtual, marchaAtual = marchaAtual, corFundoAtual = corFundoAtual, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = onNavigateBack, title = s.editIconsTitle)
 }
 
 @Composable
 fun BaseSettingsScreen(
+    s: AppStrings,
     velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boolean, tempBateriaAtual: Int, tempMotorAtual: Int, marchaAtual: String,
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String,
     onNavigateBack: () -> Unit, title: String
@@ -91,12 +93,12 @@ fun BaseSettingsScreen(
             Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = title, color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text("BACK", color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(title, color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
+                        Text(s.back, color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
                     Spacer(Modifier.height(32.dp))
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text("Work in Progress...", color = primaryText, fontSize = 32.sp, fontFamily = agencyFbFont)
+                        Text(s.workInProgress, color = primaryText, fontSize = 32.sp, fontFamily = agencyFbFont)
                     }
                 }
             }

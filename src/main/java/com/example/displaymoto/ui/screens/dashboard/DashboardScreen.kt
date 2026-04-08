@@ -56,6 +56,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
+import com.example.displaymoto.AppStrings
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -63,6 +64,7 @@ val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
 
 @Composable
 fun DashboardScreen(
+    s: AppStrings,
     corFundoAtual: Color = Color(0xFF0D0F26),
     corPersonalizada: Color = Color(0xFF0D0F26),
     currentContrast: String = "STANDARD",
@@ -145,7 +147,7 @@ fun DashboardScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(corFundoAtual)) {
             TopBarSection(luz1, luz2, luz3, luz4, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.12f).padding(horizontal = 32.dp))
-            MainContentSection(velocidadeAnimadaState.value, tempAnimadaState.value, marcha, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, accentColor, contrastWeight, { motoLigada = it }, { marcha = it }, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.63f).padding(horizontal = 32.dp))
+            MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marcha, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, accentColor, contrastWeight, { motoLigada = it }, { marcha = it }, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.63f).padding(horizontal = 32.dp))
             InfoBarSection(odometro, autonomia, consumo, primaryText, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
             BottomBarSection(modeIdx, primaryText, secondaryText, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
         }
@@ -153,12 +155,12 @@ fun DashboardScreen(
         if (mostrarAviso) {
             Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.85f)), contentAlignment = Alignment.Center) {
                 Column(modifier = Modifier.border(4.dp, Color(0xFFE53935)).background(Color(0xFF1A1A1A)).padding(64.dp), horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("A V I S O", color = Color(0xFFE53935), fontSize = 72.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    Text(s.warning, color = Color(0xFFE53935), fontSize = 72.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(24.dp))
-                    Text("BATERIA FRACA (20%)", color = Color.White, fontSize = 56.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    Text(s.lowBattery, color = Color.White, fontSize = 56.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Autonomia crítica. Por favor, dirija-se a", color = Color.LightGray, fontSize = 36.sp, fontFamily = agencyFb)
-                    Text("um posto de carregamento imediatamente.", color = Color.LightGray, fontSize = 36.sp, fontFamily = agencyFb)
+                    Text(s.critRange1, color = Color.LightGray, fontSize = 36.sp, fontFamily = agencyFb)
+                    Text(s.critRange2, color = Color.LightGray, fontSize = 36.sp, fontFamily = agencyFb)
                 }
             }
         }
@@ -201,7 +203,7 @@ private fun TopBarSection(luz1: Boolean, luz2: Boolean, luz3: Boolean, luz4: Boo
 }
 
 @Composable
-private fun MainContentSection(velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, modifier: Modifier = Modifier) {
+private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -250,7 +252,7 @@ private fun MainContentSection(velocidadeAnimada: Float, tempAnimada: Float, mar
                 Text("km/h", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
             }
         }
-        Box(modifier = Modifier.weight(1.3f), contentAlignment = Alignment.Center) { Text("ESTRADA 3D", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = contrastWeight) }
+        Box(modifier = Modifier.weight(1.3f), contentAlignment = Alignment.Center) { Text(s.road3d, color = secondaryText, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = contrastWeight) }
         Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
             Box(modifier = Modifier.size(280.dp, 360.dp).align(Alignment.Center)) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -332,7 +334,7 @@ private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Co
                     Text("In The End", color = primaryText, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("Linkin Park", color = secondaryText, fontSize = 14.sp, fontFamily = agencyFb, fontWeight = contrastWeight, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(modifier = Modifier.height(6.dp))
-                    LinearProgressIndicator(progress = musicProgress, modifier = Modifier.fillMaxWidth().height(2.dp), color = primaryText, trackColor = secondaryText.copy(alpha = 0.3f))
+                    LinearProgressIndicator(progress = { musicProgress }, modifier = Modifier.fillMaxWidth().height(2.dp), color = primaryText, trackColor = secondaryText.copy(alpha = 0.3f))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {

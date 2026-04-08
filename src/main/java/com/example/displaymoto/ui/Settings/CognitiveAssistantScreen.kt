@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.displaymoto.AppStrings
 import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,7 @@ import java.util.*
 
 @Composable
 fun CognitiveAssistantScreen(
+    s: AppStrings,
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String,
     currentLanguage: String, onLanguageChange: (String) -> Unit,
@@ -120,58 +122,58 @@ fun CognitiveAssistantScreen(
             Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "COGNITIVE ASSISTANT", color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text(text = "BACK", color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(text = s.cognitiveTitle, color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
+                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
 
                     Spacer(Modifier.height(16.dp))
 
                     Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "LANGUAGE COMPLEXITY", subtitulo = "Adjust the terminology used across the system", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.langComplexityTitle, subtitulo = s.langComplexityDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "SIMPLE", color = if (currentLanguage == "SIMPLE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onLanguageChange("SIMPLE") })
+                                    Text(text = s.simple, color = if (currentLanguage == "SIMPLE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onLanguageChange("SIMPLE") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "STANDARD", color = if (currentLanguage == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onLanguageChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentLanguage == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onLanguageChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "TECHNICAL", color = if (currentLanguage == "TECHNICAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onLanguageChange("TECHNICAL") })
+                                    Text(text = s.technical, color = if (currentLanguage == "TECHNICAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onLanguageChange("TECHNICAL") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "INFORMATION DENSITY", subtitulo = "Control how much data is displayed on screen at once", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.infoDensityTitle, subtitulo = s.infoDensityDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "ESSENTIAL", color = if (currentDensity == "ESSENTIAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onDensityChange("ESSENTIAL") })
+                                    Text(text = s.essential, color = if (currentDensity == "ESSENTIAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onDensityChange("ESSENTIAL") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "STANDARD", color = if (currentDensity == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onDensityChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentDensity == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onDensityChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "FULL", color = if (currentDensity == "FULL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onDensityChange("FULL") })
+                                    Text(text = s.full, color = if (currentDensity == "FULL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onDensityChange("FULL") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "CONTEXTUAL HELP", subtitulo = "Provide explanations for system features and warnings", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.contextHelpTitle, subtitulo = s.contextHelpDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "OFF", color = if (currentHelp == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onHelpChange("OFF") })
+                                    Text(text = s.off, color = if (currentHelp == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onHelpChange("OFF") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "ON DEMAND", color = if (currentHelp == "ON DEMAND") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onHelpChange("ON DEMAND") })
+                                    Text(text = s.onDemand, color = if (currentHelp == "ON DEMAND") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onHelpChange("ON DEMAND") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "ALWAYS ON", color = if (currentHelp == "ALWAYS ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onHelpChange("ALWAYS ON") })
+                                    Text(text = s.alwaysOn, color = if (currentHelp == "ALWAYS ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onHelpChange("ALWAYS ON") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "ALERTS", subtitulo = "Filter the frequency and priority of system notifications", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.alertsTitle, subtitulo = s.alertsDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "CRITICAL ONLY", color = if (currentAlerts == "CRITICAL ONLY") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAlertsChange("CRITICAL ONLY") })
+                                    Text(text = s.criticalOnly, color = if (currentAlerts == "CRITICAL ONLY") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAlertsChange("CRITICAL ONLY") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "STANDARD", color = if (currentAlerts == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAlertsChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentAlerts == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAlertsChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "ALL", color = if (currentAlerts == "ALL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAlertsChange("ALL") })
+                                    Text(text = s.all, color = if (currentAlerts == "ALL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onAlertsChange("ALL") })
                                 }
                             }
                         )

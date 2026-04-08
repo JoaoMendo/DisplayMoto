@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.displaymoto.AppStrings
 import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
 import kotlinx.coroutines.Dispatchers
@@ -30,6 +31,7 @@ import java.util.*
 
 @Composable
 fun AudioHapticsScreen(
+    s: AppStrings,
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String,
     currentFeedback: String, onFeedbackChange: (String) -> Unit,
@@ -119,46 +121,46 @@ fun AudioHapticsScreen(
             Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = "AUDIO & HAPTICS", color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text(text = "BACK", color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(text = s.audioHapticsScreenTitle, color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
+                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
 
                     Spacer(Modifier.height(16.dp))
 
                     Column(modifier = Modifier.weight(1f).fillMaxWidth().verticalScroll(scrollState)) {
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "AUDIO AND HAPTICS", subtitulo = "Choose your preferred system interaction feedback", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.audioHapticsTitle, subtitulo = s.feedbackDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "OFF", color = if (currentFeedback == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("OFF") })
+                                    Text(text = s.off, color = if (currentFeedback == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("OFF") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "AUDIO", color = if (currentFeedback == "AUDIO") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("AUDIO") })
+                                    Text(text = s.audio, color = if (currentFeedback == "AUDIO") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("AUDIO") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "HAPTIC", color = if (currentFeedback == "HAPTIC") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("HAPTIC") })
+                                    Text(text = s.haptic, color = if (currentFeedback == "HAPTIC") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("HAPTIC") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "BOTH", color = if (currentFeedback == "BOTH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("BOTH") })
+                                    Text(text = s.both, color = if (currentFeedback == "BOTH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("BOTH") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "VISUAL ALERTS FOR AUDIO", subtitulo = "Flash screen elements when important sound alerts occur", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.visualAlertsTitle, subtitulo = s.visualAlertsDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "OFF", color = if (currentVisualAlerts == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onVisualAlertsChange("OFF") })
+                                    Text(text = s.off, color = if (currentVisualAlerts == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onVisualAlertsChange("OFF") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "ON", color = if (currentVisualAlerts == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onVisualAlertsChange("ON") })
+                                    Text(text = s.on, color = if (currentVisualAlerts == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onVisualAlertsChange("ON") })
                                 }
                             }
                         )
                         LinhaDivisoria(accentColor)
-                        SettingItem(titulo = "ERROR FEEDBACK", subtitulo = "Adjust the intensity of alerts when a system error happens", primaryColor = primaryText, secondaryColor = secondaryText,
+                        SettingItem(titulo = s.errorFeedbackTitle, subtitulo = s.errorFeedbackDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = "STANDARD", color = if (currentErrorFeedback == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentErrorFeedback == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "HAPTIC BOOST", color = if (currentErrorFeedback == "HAPTIC BOOST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("HAPTIC BOOST") })
+                                    Text(text = s.hapticBoost, color = if (currentErrorFeedback == "HAPTIC BOOST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("HAPTIC BOOST") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = "MAXIMUM", color = if (currentErrorFeedback == "MAXIMUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("MAXIMUM") })
+                                    Text(text = s.maximum, color = if (currentErrorFeedback == "MAXIMUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("MAXIMUM") })
                                 }
                             }
                         )

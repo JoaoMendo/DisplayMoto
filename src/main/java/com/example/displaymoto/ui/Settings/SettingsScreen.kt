@@ -44,6 +44,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -52,6 +53,8 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.displaymoto.R
+import com.example.displaymoto.AppLanguage
+import com.example.displaymoto.AppStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
@@ -65,6 +68,7 @@ val AzulClaro = Color(0xFF00BFFF)
 
 @Composable
 fun SettingsScreen(
+    s: AppStrings, currentAppLanguage: AppLanguage = AppLanguage.EN, onAppLanguageChange: (AppLanguage) -> Unit = {},
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "N",
     corFundoAtual: Color, corPersonalizada: Color = Color(0xFF0D0F26), currentContrast: String = "STANDARD",
     onCorFundoChange: (Color) -> Unit = {}, onNavigateBack: () -> Unit = {}, onNavigateToPersonalization: () -> Unit = {}
@@ -126,12 +130,12 @@ fun SettingsScreen(
             } else false
         }) {
             TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
-            SettingsContentSection(onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onOpenLibrary = { showColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
+            SettingsContentSection(s = s, currentAppLanguage = currentAppLanguage, onAppLanguageChange = onAppLanguageChange, onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onOpenLibrary = { showColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
             BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = corDestaque, textColor = primaryText, modifier = Modifier.weight(0.15f))
         }
 
         if (showColorLibrary) {
-            ColorLibraryDialog(initialColor = corFundoAtual, onDismiss = { showColorLibrary = false }, onColorSelected = { onCorFundoChange(it); showColorLibrary = false })
+            ColorLibraryDialog(s = s, initialColor = corFundoAtual, onDismiss = { showColorLibrary = false }, onColorSelected = { onCorFundoChange(it); showColorLibrary = false })
         }
     }
 }
@@ -236,25 +240,24 @@ fun SettingItem(titulo: String, subtitulo: String, primaryColor: Color = Color.W
 }
 
 @Composable
-fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Unit, onOpenLibrary: () -> Unit, onNavigateToPersonalization: () -> Unit, corDestaque: Color, primaryText: Color, secondaryText: Color, modifier: Modifier = Modifier) {
+fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onAppLanguageChange: (AppLanguage) -> Unit, onVoltar: () -> Unit, onCorSelecionada: (Color) -> Unit, onOpenLibrary: () -> Unit, onNavigateToPersonalization: () -> Unit, corDestaque: Color, primaryText: Color, secondaryText: Color, modifier: Modifier = Modifier) {
     val activity = LocalContext.current.findActivity()
     val scrollState = rememberScrollState()
+    var showLanguageDropdown by remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize().padding(horizontal = 32.dp, vertical = 16.dp)) {
         Column(modifier = Modifier.fillMaxSize()) {
             Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterStart) {
-                    // Aqui mantemos null porque a palavra "SETTINGS" está logo ao lado. Dizer "Settings Icon, Settings" seria erro.
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(painterResource(id = R.drawable.ic_settings), contentDescription = null, tint = primaryText, modifier = Modifier.size(40.dp))
                         Spacer(Modifier.width(16.dp))
-                        Text("SETTINGS", color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont)
+                        Text(s.settingsTitle, color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont)
                     }
                 }
                 Box(modifier = Modifier.weight(2f), contentAlignment = Alignment.Center) {
                     var nivelBrilho by remember { mutableFloatStateOf(0.5f) }
                     LaunchedEffect(nivelBrilho) { activity?.window?.let { it.attributes = it.attributes.apply { screenBrightness = nivelBrilho } } }
-                    // A barra de brilho ganha semântica para ser anunciada como controlo de ecrã
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) { contentDescription = "Screen brightness slider" }) {
                         Icon(Icons.Filled.BrightnessHigh, contentDescription = null, tint = primaryText, modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(16.dp))
@@ -264,8 +267,7 @@ fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Un
                     }
                 }
                 Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.CenterEnd) {
-                    // Botão BACK agora tem a Role certa
-                    Text("BACK", color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable(role = Role.Button, onClickLabel = "Go back") { onVoltar() }.padding(8.dp))
+                    Text(s.back, color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable(role = Role.Button, onClickLabel = "Go back") { onVoltar() }.padding(8.dp))
                 }
             }
 
@@ -273,26 +275,53 @@ fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Un
 
             Column(modifier = Modifier.fillMaxSize().verticalScroll(scrollState)) {
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "BLUETOOTH", subtitulo = "Manage phone and intercom connections", primaryColor = primaryText, secondaryColor = secondaryText)
+                SettingItem(titulo = s.bluetoothTitle, subtitulo = s.bluetoothDesc, primaryColor = primaryText, secondaryColor = secondaryText)
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "CONECT MYFULGORA", subtitulo = "Sync your motorcycle with the official app", primaryColor = primaryText, secondaryColor = secondaryText)
+                SettingItem(titulo = s.connectTitle, subtitulo = s.connectDesc, primaryColor = primaryText, secondaryColor = secondaryText)
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "COLOUR", subtitulo = "Tap for full library or pick a shortcut", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onOpenLibrary, conteudo = {
+                SettingItem(titulo = s.colorTitle, subtitulo = s.colorDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onOpenLibrary, conteudo = {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         CirculoCor(Color(0xFF0D0F26), "Default Dark Blue") { onCorSelecionada(Color(0xFF0D0F26)) }
                         CirculoCor(Color.Red, "Red") { onCorSelecionada(Color.Red) }
                         CirculoCor(Color.Green, "Green") { onCorSelecionada(Color.Green) }
-                        Text("MORE+", color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable(role = Role.Button) { onOpenLibrary() })
+                        Text(s.more, color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable(role = Role.Button) { onOpenLibrary() })
                     }
                 })
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "LANGUAGE", subtitulo = "Select the system display language", primaryColor = primaryText, secondaryColor = secondaryText, conteudo = {
-                    Row(verticalAlignment = Alignment.CenterVertically) { Text("ENGLISH", color = primaryText, fontSize = 24.sp, fontFamily = agencyFbFont); Spacer(modifier = Modifier.width(4.dp)); Text("▾", color = corDestaque, fontSize = 24.sp) }
+                SettingItem(titulo = s.langTitle, subtitulo = s.langDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = { showLanguageDropdown = true }, conteudo = {
+                    Box {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .semantics(mergeDescendants = true) {
+                                    contentDescription = "${s.langTitle}: ${currentAppLanguage.displayName}"
+                                    role = Role.DropdownList
+                                }
+                                .clickable(role = Role.Button, onClickLabel = s.langTitle) { showLanguageDropdown = true }
+                        ) {
+                            Text(currentAppLanguage.displayName, color = primaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text("▾", color = corDestaque, fontSize = 24.sp, modifier = Modifier.semantics { contentDescription = "" })
+                        }
+                        DropdownMenu(expanded = showLanguageDropdown, onDismissRequest = { showLanguageDropdown = false }, containerColor = Color(0xFF1A1C2E)) {
+                            AppLanguage.entries.forEach { lang ->
+                                val isSelected = lang == currentAppLanguage
+                                DropdownMenuItem(
+                                    modifier = Modifier.semantics {
+                                        selected = isSelected
+                                        contentDescription = lang.displayName + if (isSelected) " ✓" else ""
+                                    },
+                                    text = { Text(lang.displayName, color = if (isSelected) corDestaque else Color.White, fontSize = 22.sp, fontFamily = agencyFbFont) },
+                                    onClick = { onAppLanguageChange(lang); showLanguageDropdown = false }
+                                )
+                            }
+                        }
+                    }
                 })
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "PERSONALIZATION", subtitulo = "Adjust display, units and layout preferences", primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavigateToPersonalization)
+                SettingItem(titulo = s.persTitle, subtitulo = s.persDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onNavigateToPersonalization)
                 LinhaDivisoria(corDestaque)
-                SettingItem(titulo = "ABOUT THE MOTORCYCLE", subtitulo = "System information, software updates and details", primaryColor = primaryText, secondaryColor = secondaryText)
+                SettingItem(titulo = s.aboutTitle, subtitulo = s.aboutDesc, primaryColor = primaryText, secondaryColor = secondaryText)
                 LinhaDivisoria(corDestaque)
 
                 Spacer(Modifier.height(32.dp))
@@ -302,12 +331,12 @@ fun SettingsContentSection(onVoltar: () -> Unit, onCorSelecionada: (Color) -> Un
 }
 
 @Composable
-fun ColorLibraryDialog(initialColor: Color, onDismiss: () -> Unit, onColorSelected: (Color) -> Unit) {
+fun ColorLibraryDialog(s: AppStrings, initialColor: Color, onDismiss: () -> Unit, onColorSelected: (Color) -> Unit) {
     var selectedColor by remember { mutableStateOf(initialColor) }
-    AlertDialog(onDismissRequest = onDismiss, confirmButton = { Button(onClick = { onColorSelected(selectedColor) }, colors = ButtonDefaults.buttonColors(containerColor = AzulClaro)) { Text("SELECT", fontFamily = agencyFbFont, color = Color.White) } }, dismissButton = { TextButton(onClick = onDismiss) { Text("CANCEL", color = Color.Gray, fontFamily = agencyFbFont) } }, title = { Text("COLOUR LIBRARY", fontFamily = agencyFbFont, fontSize = 28.sp, color = Color.White) }, containerColor = Color(0xFF1A1C2E), text = {
+    AlertDialog(onDismissRequest = onDismiss, confirmButton = { Button(onClick = { onColorSelected(selectedColor) }, colors = ButtonDefaults.buttonColors(containerColor = AzulClaro)) { Text(s.select, fontFamily = agencyFbFont, color = Color.White) } }, dismissButton = { TextButton(onClick = onDismiss) { Text(s.cancel, color = Color.Gray, fontFamily = agencyFbFont) } }, title = { Text(s.colorLibraryTitle, fontFamily = agencyFbFont, fontSize = 28.sp, color = Color.White) }, containerColor = Color(0xFF1A1C2E), text = {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Box(modifier = Modifier.size(100.dp).clip(RoundedCornerShape(12.dp)).background(selectedColor).border(2.dp, Color.White, RoundedCornerShape(12.dp)))
-            Spacer(Modifier.height(24.dp)); HueBar(onColorChanged = { selectedColor = it }); Spacer(Modifier.height(16.dp)); Text("Drag to pick any colour", color = Color.LightGray, fontSize = 16.sp, fontFamily = agencyFbFont)
+            Spacer(Modifier.height(24.dp)); HueBar(onColorChanged = { selectedColor = it }); Spacer(Modifier.height(16.dp)); Text(s.dragColor, color = Color.LightGray, fontSize = 16.sp, fontFamily = agencyFbFont)
         }
     })
 }
