@@ -65,32 +65,41 @@ val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
 @Composable
 fun DashboardScreen(
     s: AppStrings,
+    velocidadeAtual: Int = 0,
+    bateriaAtual: Int = 85,
+    tempBateriaAtual: Int = 30,
+    tempMotorAtual: Int = 80,
+    marchaAtual: String = "P",
+    autonomiaKm: Int = 200,
     corFundoAtual: Color = Color(0xFF0D0F26),
     corPersonalizada: Color = Color(0xFF0D0F26),
     currentContrast: String = "STANDARD",
     autonomiaInicial: Float = 200f,
     aCarregarInicial: Boolean = false,
     onBateriaChange: (Float, Boolean) -> Unit = { _, _ -> },
-    onNavigateToSettings: () -> Unit = {}
+    onNavigateToSettings: () -> Unit,
+    aiCorDestaque: Color? = null,
+    aiPrimaryText: Color? = null,
+    aiSecondaryText: Color? = null
 ) {
-    // ==========================================
-    // MOTOR DE ACESSIBILIDADE WCAG NA DASHBOARD
-    // ==========================================
     val isLightBg = corPersonalizada.luminance() > 0.5f
-    val accentColor = when (currentContrast) {
+
+    val accentColor = aiCorDestaque ?: when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
-        else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00D4FF) // O azul ciano original
+        else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
     }
-    val primaryText = when (currentContrast) {
+
+    val primaryText = aiPrimaryText ?: when (currentContrast) {
         "HIGH CONTRAST" -> Color.White
         "NIGHT MODE" -> Color(0xFFF0F0F0)
         else -> if (isLightBg) Color.Black else Color.White
     }
-    val secondaryText = when (currentContrast) {
+
+    val secondaryText = aiSecondaryText ?: when (currentContrast) {
         "HIGH CONTRAST" -> Color.White
         "NIGHT MODE" -> Color(0xFFAAAAAA)
-        else -> if (isLightBg) Color(0xFF4A4A4A) else Color.Gray
+        else -> if (isLightBg) Color(0xFF4A4A4A) else Color.LightGray
     }
 
     // NOVO: O Texto fica BOLD se for Alto Contraste!

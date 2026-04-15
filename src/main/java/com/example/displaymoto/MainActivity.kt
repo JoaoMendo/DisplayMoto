@@ -26,6 +26,7 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.displaymoto.ui.screens.dashboard.*
 import com.example.displaymoto.ui.screens.dashboard.settings.*
+import kotlinx.coroutines.launch
 
 val LocalAnimationMultiplier = compositionLocalOf { 1f }
 
@@ -57,6 +58,12 @@ class MainActivity : ComponentActivity() {
             var currentColorFilter by rememberSaveable { mutableStateOf("OFF") }
             var currentTextSpacing by rememberSaveable { mutableStateOf("STANDARD") }
             var currentAnimations by rememberSaveable { mutableStateOf("ON") }
+
+            // AI Color States
+            var aiCorDestaque by remember { mutableStateOf<Color?>(null) }
+            var aiPrimaryText by remember { mutableStateOf<Color?>(null) }
+            var aiSecondaryText by remember { mutableStateOf<Color?>(null) }
+            val coroutineScope = rememberCoroutineScope()
 
             // Memória Touch (NOVO)
             var currentTouchArea by rememberSaveable { mutableStateOf("STANDARD") }
@@ -149,18 +156,78 @@ class MainActivity : ComponentActivity() {
             ) {
                 Surface(modifier = modifierComFiltro, color = corDoFundoTema) {
                     when (currentScreen) {
-                        MotoScreen.DASHBOARD -> DashboardScreen(s = s, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, autonomiaInicial = autonomiaGlobal, aCarregarInicial = aCarregarGlobal, onBateriaChange = { auto, carregando -> autonomiaGlobal = auto; aCarregarGlobal = carregando }, onNavigateToSettings = { currentScreenName = MotoScreen.SETTINGS.name })
-                        MotoScreen.SETTINGS -> SettingsScreen(s = s, currentAppLanguage = appLanguage, onAppLanguageChange = { appLanguageName = it.name }, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onCorFundoChange = { novaCor -> corPersonalizadaArgb = novaCor.toArgb(); currentContrast = "STANDARD" }, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, onNavigateToPersonalization = { currentScreenName = MotoScreen.PERSONALIZATION.name })
-                        MotoScreen.PERSONALIZATION -> PersonalizationSettings(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, isIaActivated = isIaActivatedGlobal, onIaChange = { isIaActivatedGlobal = it }, onNavigateBack = { currentScreenName = MotoScreen.SETTINGS.name }, onNavigateToVisual = { currentScreenName = MotoScreen.VISUAL_PREFERENCES.name }, onNavigateToTouch = { currentScreenName = MotoScreen.TOUCH.name }, onNavigateToCognitive = { currentScreenName = MotoScreen.COGNITIVE_ASSISTANT.name }, onNavigateToAudio = { currentScreenName = MotoScreen.AUDIO_HAPTICS.name }, onNavigateToEditIcons = { currentScreenName = MotoScreen.EDIT_ICONS.name })
-                        MotoScreen.VISUAL_PREFERENCES -> VisualPreferencesScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, textSizeScale = textSizeScale, currentColorFilter = currentColorFilter, currentTextSpacing = currentTextSpacing, onTextSpacingChange = { currentTextSpacing = it }, currentAnimations = currentAnimations, onAnimationsChange = { currentAnimations = it }, onColorFilterChange = { currentColorFilter = it }, onTextSizeChange = { textSizeScale = it }, onContrastChange = { currentContrast = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+                        MotoScreen.DASHBOARD -> DashboardScreen(s = s, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, autonomiaInicial = autonomiaGlobal, aCarregarInicial = aCarregarGlobal, onBateriaChange = { auto, carregando -> autonomiaGlobal = auto; aCarregarGlobal = carregando }, onNavigateToSettings = { currentScreenName = MotoScreen.SETTINGS.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
+                        MotoScreen.SETTINGS -> SettingsScreen(s = s, currentAppLanguage = appLanguage, onAppLanguageChange = { appLanguageName = it.name }, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onCorFundoChange = { novaCor -> 
+                            corPersonalizadaArgb = novaCor.toArgb()
+                            currentContrast = "STANDARD"
+                            // Verificar se as cores atuais dos elementos ainda têm contraste suficiente
+                            if (isIaActivatedGlobal) {
+                                val currentAccent = aiCorDestaque
+                                val currentPrimary = aiPrimaryText
+                                val currentSecondary = aiSecondaryText
+                                // Se o utilizador já tem cores definidas, verificar se têm contraste
+                                if (currentAccent != null && currentPrimary != null && currentSecondary != null) {
+                                    val accentOk = GeminiColorHelper.contrastRatio(currentAccent, novaCor) >= 3.0
+                                    val primaryOk = GeminiColorHelper.contrastRatio(currentPrimary, novaCor) >= 3.0
+                                    val secondaryOk = GeminiColorHelper.contrastRatio(currentSecondary, novaCor) >= 3.0
+                                    if (!accentOk || !primaryOk || !secondaryOk) {
+                                        // Contraste insuficiente — adaptar com IA
+                                        val hexColor = String.format("#%06X", 0xFFFFFF and novaCor.toArgb())
+                                        val localColors = GeminiColorHelper.computeLocalContrastColors(hexColor)
+                                        if (!accentOk) aiCorDestaque = localColors.accentColor
+                                        if (!primaryOk) aiPrimaryText = localColors.primaryText
+                                        if (!secondaryOk) aiSecondaryText = localColors.secondaryText
+                                        // Refinar com Gemini em background
+                                        coroutineScope.launch {
+                                            val adaptadas = GeminiColorHelper.adaptColorsToBackground(hexColor)
+                                            if (adaptadas != null) {
+                                                if (!accentOk) aiCorDestaque = adaptadas.accentColor
+                                                if (!primaryOk) aiPrimaryText = adaptadas.primaryText
+                                                if (!secondaryOk) aiSecondaryText = adaptadas.secondaryText
+                                            }
+                                        }
+                                    }
+                                    // Se tudo tem contraste → não mexer! Respeitar personalização.
+                                } else {
+                                    // Sem cores personalizadas ainda — aplicar adaptação completa
+                                    val hexColor = String.format("#%06X", 0xFFFFFF and novaCor.toArgb())
+                                    val localColors = GeminiColorHelper.computeLocalContrastColors(hexColor)
+                                    aiCorDestaque = localColors.accentColor
+                                    aiPrimaryText = localColors.primaryText
+                                    aiSecondaryText = localColors.secondaryText
+                                    coroutineScope.launch {
+                                        val adaptadas = GeminiColorHelper.adaptColorsToBackground(hexColor)
+                                        if (adaptadas != null) { aiCorDestaque = adaptadas.accentColor; aiPrimaryText = adaptadas.primaryText; aiSecondaryText = adaptadas.secondaryText }
+                                    }
+                                }
+                            }
+                        }, onCorElementosChange = { novaCor ->
+                            // Aplicar a escolha do utilizador
+                            aiCorDestaque = novaCor
+                            // Verificar se o fundo atual tem contraste suficiente com a nova cor de elementos
+                            if (isIaActivatedGlobal) {
+                                val adaptedBg = GeminiColorHelper.computeAdaptedBackground(novaCor, corPersonalizada)
+                                if (adaptedBg != null) {
+                                    // Fundo precisa de ser adaptado!
+                                    corPersonalizadaArgb = adaptedBg.toArgb()
+                                    // Recalcular cores de texto para o novo fundo
+                                    val newBgHex = String.format("#%06X", 0xFFFFFF and adaptedBg.toArgb())
+                                    val localColors = GeminiColorHelper.computeLocalContrastColors(newBgHex)
+                                    aiPrimaryText = localColors.primaryText
+                                    aiSecondaryText = localColors.secondaryText
+                                }
+                            }
+                        }, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, onNavigateToPersonalization = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
+                        MotoScreen.PERSONALIZATION -> PersonalizationSettings(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, isIaActivated = isIaActivatedGlobal, onIaChange = { isIaActivatedGlobal = it }, onNavigateBack = { currentScreenName = MotoScreen.SETTINGS.name }, onNavigateToVisual = { currentScreenName = MotoScreen.VISUAL_PREFERENCES.name }, onNavigateToTouch = { currentScreenName = MotoScreen.TOUCH.name }, onNavigateToCognitive = { currentScreenName = MotoScreen.COGNITIVE_ASSISTANT.name }, onNavigateToAudio = { currentScreenName = MotoScreen.AUDIO_HAPTICS.name }, onNavigateToEditIcons = { currentScreenName = MotoScreen.EDIT_ICONS.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
+                        MotoScreen.VISUAL_PREFERENCES -> VisualPreferencesScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, textSizeScale = textSizeScale, currentColorFilter = currentColorFilter, currentTextSpacing = currentTextSpacing, onTextSpacingChange = { currentTextSpacing = it }, currentAnimations = currentAnimations, onAnimationsChange = { currentAnimations = it }, onColorFilterChange = { currentColorFilter = it }, onTextSizeChange = { textSizeScale = it }, onContrastChange = { currentContrast = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
 
-                        MotoScreen.TOUCH -> TouchScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentTouchArea = currentTouchArea, onTouchAreaChange = { currentTouchArea = it }, currentMethod = currentMethod, onMethodChange = { currentMethod = it }, currentResponseTime = currentResponseTime, onResponseTimeChange = { currentResponseTime = it }, currentErrorPrevention = currentErrorPrevention, onErrorPreventionChange = { currentErrorPrevention = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+                        MotoScreen.TOUCH -> TouchScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentTouchArea = currentTouchArea, onTouchAreaChange = { currentTouchArea = it }, currentMethod = currentMethod, onMethodChange = { currentMethod = it }, currentResponseTime = currentResponseTime, onResponseTimeChange = { currentResponseTime = it }, currentErrorPrevention = currentErrorPrevention, onErrorPreventionChange = { currentErrorPrevention = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
 
-                        MotoScreen.COGNITIVE_ASSISTANT -> CognitiveAssistantScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentLanguage = currentLanguage, onLanguageChange = { currentLanguage = it }, currentDensity = currentDensity, onDensityChange = { currentDensity = it }, currentHelp = currentHelp, onHelpChange = { currentHelp = it }, currentAlerts = currentAlerts, onAlertsChange = { currentAlerts = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+                        MotoScreen.COGNITIVE_ASSISTANT -> CognitiveAssistantScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentLanguage = currentLanguage, onLanguageChange = { currentLanguage = it }, currentDensity = currentDensity, onDensityChange = { currentDensity = it }, currentHelp = currentHelp, onHelpChange = { currentHelp = it }, currentAlerts = currentAlerts, onAlertsChange = { currentAlerts = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
 
-                        MotoScreen.AUDIO_HAPTICS -> AudioHapticsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentFeedback = currentFeedback, onFeedbackChange = { currentFeedback = it }, currentVisualAlerts = currentVisualAlerts, onVisualAlertsChange = { currentVisualAlerts = it }, currentErrorFeedback = currentErrorFeedback, onErrorFeedbackChange = { currentErrorFeedback = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+                        MotoScreen.AUDIO_HAPTICS -> AudioHapticsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentFeedback = currentFeedback, onFeedbackChange = { currentFeedback = it }, currentVisualAlerts = currentVisualAlerts, onVisualAlertsChange = { currentVisualAlerts = it }, currentErrorFeedback = currentErrorFeedback, onErrorFeedbackChange = { currentErrorFeedback = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
 
-                        MotoScreen.EDIT_ICONS -> EditIconsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name })
+                        MotoScreen.EDIT_ICONS -> EditIconsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
                     }
                 }
             }

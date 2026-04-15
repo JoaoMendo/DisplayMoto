@@ -27,8 +27,8 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 @Composable
-fun EditIconsScreen(s: AppStrings, velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boolean, tempBateriaAtual: Int, tempMotorAtual: Int, marchaAtual: String, corFundoAtual: Color, corPersonalizada: Color, currentContrast: String, onNavigateBack: () -> Unit) {
-    BaseSettingsScreen(s = s, velocidadeAtual = velocidadeAtual, bateriaAtual = bateriaAtual, aCarregarAtual = aCarregarAtual, tempBateriaAtual = tempBateriaAtual, tempMotorAtual = tempMotorAtual, marchaAtual = marchaAtual, corFundoAtual = corFundoAtual, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = onNavigateBack, title = s.editIconsTitle)
+fun EditIconsScreen(s: AppStrings, velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boolean, tempBateriaAtual: Int, tempMotorAtual: Int, marchaAtual: String, corFundoAtual: Color, corPersonalizada: Color, currentContrast: String, onNavigateBack: () -> Unit, aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null) {
+    BaseSettingsScreen(s = s, velocidadeAtual = velocidadeAtual, bateriaAtual = bateriaAtual, aCarregarAtual = aCarregarAtual, tempBateriaAtual = tempBateriaAtual, tempMotorAtual = tempMotorAtual, marchaAtual = marchaAtual, corFundoAtual = corFundoAtual, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = onNavigateBack, title = s.editIconsTitle, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
 }
 
 @Composable
@@ -36,15 +36,16 @@ fun BaseSettingsScreen(
     s: AppStrings,
     velocidadeAtual: Int, bateriaAtual: Int, aCarregarAtual: Boolean, tempBateriaAtual: Int, tempMotorAtual: Int, marchaAtual: String,
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String,
-    onNavigateBack: () -> Unit, title: String
+    onNavigateBack: () -> Unit, title: String,
+    aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
-    val corDestaque = when (currentContrast) {
+    val corDestaque = aiCorDestaque ?: when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
         else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
     }
-    val primaryText = when (currentContrast) {
+    val primaryText = aiPrimaryText ?: when (currentContrast) {
         "HIGH CONTRAST" -> Color.White
         "NIGHT MODE" -> Color(0xFFF0F0F0)
         else -> if (isLightBg) Color.Black else Color.White

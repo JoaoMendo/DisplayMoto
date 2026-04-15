@@ -34,20 +34,21 @@ fun PersonalizationSettings(
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String = "STANDARD",
     isIaActivated: Boolean, onIaChange: (Boolean) -> Unit, onNavigateBack: () -> Unit,
-    onNavigateToVisual: () -> Unit = {}, onNavigateToTouch: () -> Unit = {}, onNavigateToCognitive: () -> Unit = {}, onNavigateToAudio: () -> Unit = {}, onNavigateToEditIcons: () -> Unit = {}
+    onNavigateToVisual: () -> Unit = {}, onNavigateToTouch: () -> Unit = {}, onNavigateToCognitive: () -> Unit = {}, onNavigateToAudio: () -> Unit = {}, onNavigateToEditIcons: () -> Unit = {},
+    aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
-    val corDestaque = when (currentContrast) {
+    val corDestaque = aiCorDestaque ?: when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
         else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
     }
-    val primaryText = when (currentContrast) {
+    val primaryText = aiPrimaryText ?: when (currentContrast) {
         "HIGH CONTRAST" -> Color.White
         "NIGHT MODE" -> Color(0xFFF0F0F0)
         else -> if (isLightBg) Color.Black else Color.White
     }
-    val secondaryText = when (currentContrast) {
+    val secondaryText = aiSecondaryText ?: when (currentContrast) {
         "HIGH CONTRAST" -> Color.White
         "NIGHT MODE" -> Color(0xFFAAAAAA)
         else -> if (isLightBg) Color(0xFF4A4A4A) else Color.LightGray

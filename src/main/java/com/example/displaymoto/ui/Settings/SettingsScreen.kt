@@ -71,26 +71,28 @@ fun SettingsScreen(
     s: AppStrings, currentAppLanguage: AppLanguage = AppLanguage.EN, onAppLanguageChange: (AppLanguage) -> Unit = {},
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "N",
     corFundoAtual: Color, corPersonalizada: Color = Color(0xFF0D0F26), currentContrast: String = "STANDARD",
-    onCorFundoChange: (Color) -> Unit = {}, onNavigateBack: () -> Unit = {}, onNavigateToPersonalization: () -> Unit = {}
+    onCorFundoChange: (Color) -> Unit = {}, onCorElementosChange: (Color) -> Unit = {}, onNavigateBack: () -> Unit = {}, onNavigateToPersonalization: () -> Unit = {},
+    aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
-    val corDestaque = when (currentContrast) {
+    val corDestaque = aiCorDestaque ?: when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
         else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
     }
-    val primaryText = when (currentContrast) {
+    val primaryText = aiPrimaryText ?: when (currentContrast) {
         "HIGH CONTRAST" -> Color.White
         "NIGHT MODE" -> Color(0xFFF0F0F0)
         else -> if (isLightBg) Color.Black else Color.White
     }
-    val secondaryText = when (currentContrast) {
+    val secondaryText = aiSecondaryText ?: when (currentContrast) {
         "HIGH CONTRAST" -> Color.White
         "NIGHT MODE" -> Color(0xFFAAAAAA)
         else -> if (isLightBg) Color(0xFF4A4A4A) else Color.LightGray
     }
 
     var showColorLibrary by remember { mutableStateOf(false) }
+    var showElemColorLibrary by remember { mutableStateOf(false) }
     var piscaEsquerdo by remember { mutableStateOf(false) }
     var piscaDireito by remember { mutableStateOf(false) }
     var piscaPulso by remember { mutableStateOf(false) }
@@ -130,12 +132,15 @@ fun SettingsScreen(
             } else false
         }) {
             TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
-            SettingsContentSection(s = s, currentAppLanguage = currentAppLanguage, onAppLanguageChange = onAppLanguageChange, onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onOpenLibrary = { showColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
+            SettingsContentSection(s = s, currentAppLanguage = currentAppLanguage, onAppLanguageChange = onAppLanguageChange, onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onCorElementosSelecionada = onCorElementosChange, onOpenLibrary = { showColorLibrary = true }, onOpenElemLibrary = { showElemColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
             BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = corDestaque, textColor = primaryText, modifier = Modifier.weight(0.15f))
         }
 
         if (showColorLibrary) {
             ColorLibraryDialog(s = s, initialColor = corFundoAtual, onDismiss = { showColorLibrary = false }, onColorSelected = { onCorFundoChange(it); showColorLibrary = false })
+        }
+        if (showElemColorLibrary) {
+            ColorLibraryDialog(s = s, initialColor = corDestaque, onDismiss = { showElemColorLibrary = false }, onColorSelected = { onCorElementosChange(it); showElemColorLibrary = false })
         }
     }
 }
@@ -240,7 +245,7 @@ fun SettingItem(titulo: String, subtitulo: String, primaryColor: Color = Color.W
 }
 
 @Composable
-fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onAppLanguageChange: (AppLanguage) -> Unit, onVoltar: () -> Unit, onCorSelecionada: (Color) -> Unit, onOpenLibrary: () -> Unit, onNavigateToPersonalization: () -> Unit, corDestaque: Color, primaryText: Color, secondaryText: Color, modifier: Modifier = Modifier) {
+fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onAppLanguageChange: (AppLanguage) -> Unit, onVoltar: () -> Unit, onCorSelecionada: (Color) -> Unit, onCorElementosSelecionada: (Color) -> Unit, onOpenLibrary: () -> Unit, onOpenElemLibrary: () -> Unit, onNavigateToPersonalization: () -> Unit, corDestaque: Color, primaryText: Color, secondaryText: Color, modifier: Modifier = Modifier) {
     val activity = LocalContext.current.findActivity()
     val scrollState = rememberScrollState()
     var showLanguageDropdown by remember { mutableStateOf(false) }
@@ -285,6 +290,15 @@ fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onApp
                         CirculoCor(Color.Red, "Red") { onCorSelecionada(Color.Red) }
                         CirculoCor(Color.Green, "Green") { onCorSelecionada(Color.Green) }
                         Text(s.more, color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable(role = Role.Button) { onOpenLibrary() })
+                    }
+                })
+                LinhaDivisoria(corDestaque)
+                SettingItem(titulo = s.elemColorTitle, subtitulo = s.elemColorDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = onOpenElemLibrary, conteudo = {
+                    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        CirculoCor(Color(0xFF00BFFF), "Cyan") { onCorElementosSelecionada(Color(0xFF00BFFF)) }
+                        CirculoCor(Color(0xFFFFD600), "Amber") { onCorElementosSelecionada(Color(0xFFFFD600)) }
+                        CirculoCor(Color.White, "White") { onCorElementosSelecionada(Color.White) }
+                        Text(s.more, color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable(role = Role.Button) { onOpenElemLibrary() })
                     }
                 })
                 LinhaDivisoria(corDestaque)
