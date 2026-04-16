@@ -244,8 +244,8 @@ private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnim
                     val pMeioBaixo = Offset(60.dp.toPx(), size.height / 2f + gap)
                     val pMeioCima = Offset(60.dp.toPx(), size.height / 2f - gap)
                     val pCima = Offset(size.width - 20.dp.toPx(), 20.dp.toPx())
-                    drawLine(primaryText.copy(alpha = 0.15f), pBaixo, pMeioBaixo, espessura, StrokeCap.Butt)
-                    drawLine(primaryText.copy(alpha = 0.15f), pMeioCima, pCima, espessura, StrokeCap.Butt)
+                    drawLine(accentColor.copy(alpha = 0.2f), pBaixo, pMeioBaixo, espessura, StrokeCap.Butt)
+                    drawLine(accentColor.copy(alpha = 0.2f), pMeioCima, pCima, espessura, StrokeCap.Butt)
                     clipRect(top = (size.height - 20.dp.toPx()) - ((size.height - 40.dp.toPx()) * (velocidadeAnimada / 120f))) {
                         drawLine(accentColor, pBaixo, pMeioBaixo, espessura, StrokeCap.Butt)
                         drawLine(accentColor, pMeioCima, pCima, espessura, StrokeCap.Butt)
@@ -270,8 +270,8 @@ private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnim
                     val pMeioBaixo = Offset(size.width - 60.dp.toPx(), size.height / 2f + gap)
                     val pMeioCima = Offset(size.width - 60.dp.toPx(), size.height / 2f - gap)
                     val pCima = Offset(20.dp.toPx(), 20.dp.toPx())
-                    drawLine(primaryText.copy(alpha = 0.15f), pBaixo, pMeioBaixo, espessura, StrokeCap.Butt)
-                    drawLine(primaryText.copy(alpha = 0.15f), pMeioCima, pCima, espessura, StrokeCap.Butt)
+                    drawLine(accentColor.copy(alpha = 0.2f), pBaixo, pMeioBaixo, espessura, StrokeCap.Butt)
+                    drawLine(accentColor.copy(alpha = 0.2f), pMeioCima, pCima, espessura, StrokeCap.Butt)
                     clipRect(top = (size.height - 20.dp.toPx()) - ((size.height - 40.dp.toPx()) * (bateriaPercentagem / 100f))) {
                         val corBateria = when { aCarregar -> accentColor; bateriaPercentagem <= 20f -> Color.Red; else -> Color.Green }
                         drawLine(corBateria, pBaixo, pMeioBaixo, espessura, StrokeCap.Butt)

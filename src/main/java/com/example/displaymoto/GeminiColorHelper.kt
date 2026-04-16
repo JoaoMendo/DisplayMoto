@@ -140,9 +140,9 @@ object GeminiColorHelper {
                 val cLum = wcagLuminance(c)
                 val ratio = contrastRatio(cLum, bgLum)
                 val correctDirection = if (isDarkBg) cLum > 0.5 else cLum < 0.5
-                ratio >= textThreshold && correctDirection
+                ratio >= textThreshold && correctDirection && !isHarshClash(c, bgColor)
             }
-            .maxByOrNull { contrastRatio(wcagLuminance(it), bgLum) }
+            .randomOrNull()
 
         val primaryText = directedPrimary
             ?: if (isDarkBg) Color.White else Color.Black
@@ -159,9 +159,9 @@ object GeminiColorHelper {
                 val ratio = contrastRatio(cLum, bgLum)
                 val correctDirection = if (isDarkBg) cLum > 0.3 else cLum < 0.7
                 ratio >= textThreshold && ratio < contrastRatio(primaryLum, bgLum) * 0.92
-                    && correctDirection
+                    && correctDirection && !isHarshClash(c, bgColor)
             }
-            .maxByOrNull { contrastRatio(wcagLuminance(it), bgLum) }
+            .randomOrNull()
             ?: if (isDarkBg) Color(0xFFCCCCCC) else Color(0xFF444444)
 
         Log.d(TAG, "Secondary text on $backgroundHex: ${"%.2f".format(contrastRatio(wcagLuminance(secondaryText), bgLum))}:1")
@@ -175,24 +175,18 @@ object GeminiColorHelper {
                 val bgHueDist = hueDifference(cHue, bgHue)
                 val saturation = saturationOf(c)
                 val correctDirection = if (isDarkBg) cLum > 0.35 else cLum < 0.65
-                ratio >= 3.0 && bgHueDist > 40f && saturation > 0.4f && correctDirection
+                ratio >= 3.0 && bgHueDist > 40f && saturation > 0.4f && correctDirection && !isHarshClash(c, bgColor)
             }
-            .sortedByDescending { c ->
-                val ratio = contrastRatio(wcagLuminance(c), bgLum)
-                val saturation = saturationOf(c)
-                // Priorizar: saturação (vibrância) + contraste
-                saturation * 6.0 + ratio * 1.5
-            }
-            .firstOrNull()
+            .randomOrNull()
             // Fallback 1: relaxar filtros de hue
             ?: allCandidates
                 .filter { c ->
                     val cLum = wcagLuminance(c)
                     val ratio = contrastRatio(cLum, bgLum)
                     val correctDirection = if (isDarkBg) cLum > 0.35 else cLum < 0.65
-                    ratio >= 3.0 && correctDirection
+                    ratio >= 3.0 && correctDirection && !isHarshClash(c, bgColor)
                 }
-                .maxByOrNull { contrastRatio(wcagLuminance(it), bgLum) }
+                .randomOrNull()
             // Fallback 2: branco ou preto
             ?: if (isDarkBg) Color.White else Color.Black
 
@@ -293,6 +287,20 @@ object GeminiColorHelper {
         return delta / (1f - kotlin.math.abs(2f * l - 1f)).coerceAtLeast(0.001f)
     }
 
+    /** Verifica se duas cores colidem severamente (ex: verde e vermelho) e são hostis a daltónicos */
+    private fun isHarshClash(c1: Color, c2: Color): Boolean {
+        val h1 = hueOf(c1)
+        val h2 = hueOf(c2)
+        val s1 = saturationOf(c1)
+        val s2 = saturationOf(c2)
+        
+        fun isRed(h: Float) = h > 330f || h < 40f
+        fun isGreen(h: Float) = h in 70f..170f
+        
+        // Só é clash se for vermelho de um lado, verde do outro, e ambas tiverem saturação visível
+        return ((isRed(h1) && isGreen(h2)) || (isGreen(h1) && isRed(h2))) && s1 > 0.2f && s2 > 0.2f
+    }
+
     // =====================================================================
     // GEMINI API — REFINAMENTO COM IA
     // =====================================================================
@@ -332,8 +340,9 @@ object GeminiColorHelper {
                     4. primaryText contrast ≥ 3:1 against background (large text, 18pt+)
                     5. secondaryText contrast ≥ 3:1 against background
                     6. accentColor contrast ≥ 3:1 against background, hue must differ ≥ 60° from background hue
-                    7. NEVER pair red foreground on green background or green foreground on red background (colorblind hostile)
-                    8. accentColor must be visually distinct from primaryText (different hue)
+                    7. NEVER pair saturated red and saturated green (colorblind hostile and visually harsh).
+                    8. accentColor must be visually distinct from primaryText (different hue).
+                    9. IMPORTANT: Return RANDOM but ELEGANT accessible colors. Do NOT use pure neon colors (like #00FF00, #FF0000). Use modern UI color palettes (e.g. pastels, muted tones, sophisticated analogous or split-complementary harmonies). The combination MUST be visually appealing and harmonious.
 
                     REFERENCE EXAMPLES (correct outputs):
                     - Background #FF0000 (red, dark) → {"primaryText":"#FFFFFF","secondaryText":"#E0E0E0","accentColor":"#00E5FF"}
@@ -358,6 +367,9 @@ object GeminiColorHelper {
                 connection.readTimeout = 15000
 
                 val requestBody = JSONObject().apply {
+                    put("generationConfig", JSONObject().apply {
+                        put("temperature", 0.9)
+                    })
                     put("contents", JSONArray().apply {
                         put(JSONObject().apply {
                             put("parts", JSONArray().apply {
@@ -420,20 +432,20 @@ object GeminiColorHelper {
                     val ratio = contrastRatio(it, bgColor)
                     val dirOk = isCorrectDirection(it)
                     Log.d(TAG, "AI primaryText ratio: ${"%.2f".format(ratio)}:1, direction=${if(dirOk) "OK" else "WRONG"}")
-                    if (ratio >= 3.0 && dirOk) it else null
+                    if (ratio >= 3.0 && dirOk && !isHarshClash(it, bgColor)) it else null
                 }
                 val validSecondary = aiSecondary?.let {
                     val ratio = contrastRatio(it, bgColor)
                     val dirOk = isCorrectDirection(it)
                     Log.d(TAG, "AI secondaryText ratio: ${"%.2f".format(ratio)}:1, direction=${if(dirOk) "OK" else "WRONG"}")
-                    if (ratio >= 3.0 && dirOk) it else null
+                    if (ratio >= 3.0 && dirOk && !isHarshClash(it, bgColor)) it else null
                 }
                 val validAccent = aiAccent?.let {
                     val ratio = contrastRatio(it, bgColor)
                     val dirOk = isCorrectDirection(it)
                     val hDist = hueDifference(hueOf(it), hueOf(bgColor))
                     Log.d(TAG, "AI accentColor ratio: ${"%.2f".format(ratio)}:1, hue dist: ${"%.0f".format(hDist)}°, direction=${if(dirOk) "OK" else "WRONG"}")
-                    if (ratio >= 3.0 && dirOk && hDist > 30f) it else null
+                    if (ratio >= 3.0 && dirOk && hDist > 30f && !isHarshClash(it, bgColor)) it else null
                 }
 
                 // Se alguma cor da IA falhar, usar a local como fallback desse canal
