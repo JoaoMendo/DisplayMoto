@@ -26,6 +26,8 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.example.displaymoto.ui.screens.dashboard.*
 import com.example.displaymoto.ui.screens.dashboard.settings.*
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 val LocalAnimationMultiplier = compositionLocalOf { 1f }
@@ -63,7 +65,14 @@ class MainActivity : ComponentActivity() {
             var aiCorDestaque by remember { mutableStateOf<Color?>(null) }
             var aiPrimaryText by remember { mutableStateOf<Color?>(null) }
             var aiSecondaryText by remember { mutableStateOf<Color?>(null) }
+            
+            // Pop-up de Confirmação da IA
+            var originalUserPalette by remember { mutableStateOf<CompleteAppPalette?>(null) }
+            var showAiColorPopup by remember { mutableStateOf(false) }
+            
             val coroutineScope = rememberCoroutineScope()
+            // Debounce: cancelar pedido anterior quando o utilizador muda rapidamente
+            var pendingAiJob by remember { mutableStateOf<Job?>(null) }
 
             // Memória Touch (NOVO)
             var currentTouchArea by rememberSaveable { mutableStateOf("STANDARD") }
@@ -90,11 +99,11 @@ class MainActivity : ComponentActivity() {
             var autonomiaGlobal by rememberSaveable { mutableFloatStateOf(200f) }
             var aCarregarGlobal by rememberSaveable { mutableStateOf(false) }
 
-            val velocidadeMota = 0
+            val velocidadeMota = 82
             val bateriaMota = ((autonomiaGlobal / 200f) * 100f).toInt()
             val tempBatMota = 30
             val tempMotorMota = 80
-            val marchaMota = "P"
+            val marchaMota = "D"
 
             val corDoFundoTema = when (currentContrast) {
                 "STANDARD" -> corPersonalizada
@@ -167,54 +176,146 @@ class MainActivity : ComponentActivity() {
                                 val currentSecondary = aiSecondaryText
                                 // Se o utilizador já tem cores definidas, verificar se têm contraste
                                 if (currentAccent != null && currentPrimary != null && currentSecondary != null) {
-                                    val accentOk = GeminiColorHelper.contrastRatio(currentAccent, novaCor) >= 3.0
-                                    val primaryOk = GeminiColorHelper.contrastRatio(currentPrimary, novaCor) >= 3.0
-                                    val secondaryOk = GeminiColorHelper.contrastRatio(currentSecondary, novaCor) >= 3.0
+                                    val accentOk = GeminiColorHelper.verificarContraste(currentAccent, novaCor, GeminiColorHelper.TipoComponente.INTERATIVO).aprovado
+                                    val primaryOk = GeminiColorHelper.verificarContraste(currentPrimary, novaCor, GeminiColorHelper.TipoComponente.TEXTO_GRANDE).aprovado
+                                    val secondaryOk = GeminiColorHelper.verificarContraste(currentSecondary, novaCor, GeminiColorHelper.TipoComponente.TEXTO_NORMAL).aprovado
                                     if (!accentOk || !primaryOk || !secondaryOk) {
-                                        // Contraste insuficiente — adaptar com IA
-                                        val hexColor = String.format("#%06X", 0xFFFFFF and novaCor.toArgb())
-                                        val localColors = GeminiColorHelper.computeLocalContrastColors(hexColor)
-                                        if (!accentOk) aiCorDestaque = localColors.accentColor
-                                        if (!primaryOk) aiPrimaryText = localColors.primaryText
-                                        if (!secondaryOk) aiSecondaryText = localColors.secondaryText
-                                        // Refinar com Gemini em background
-                                        coroutineScope.launch {
-                                            val adaptadas = GeminiColorHelper.adaptColorsToBackground(hexColor)
+                                        pendingAiJob?.cancel()
+                                        pendingAiJob = coroutineScope.launch {
+                                            originalUserPalette = CompleteAppPalette(novaCor, currentPrimary, currentSecondary, currentAccent)
+                                            // Aplicar fallback local IMEDIATAMENTE
+                                            val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.BACKGROUND, novaCor)
+                                            corPersonalizadaArgb = fallback.background.toArgb()
+                                            aiCorDestaque = fallback.accentColor
+                                            aiPrimaryText = fallback.primaryText
+                                            aiSecondaryText = fallback.secondaryText
+                                            
+                                            // Debounce: esperar antes de chamar a API
+                                            delay(500)
+                                            
+                                            val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.BACKGROUND)
                                             if (adaptadas != null) {
-                                                if (!accentOk) aiCorDestaque = adaptadas.accentColor
-                                                if (!primaryOk) aiPrimaryText = adaptadas.primaryText
-                                                if (!secondaryOk) aiSecondaryText = adaptadas.secondaryText
+                                                corPersonalizadaArgb = adaptadas.background.toArgb()
+                                                aiCorDestaque = adaptadas.accentColor
+                                                aiPrimaryText = adaptadas.primaryText
+                                                aiSecondaryText = adaptadas.secondaryText
                                             }
+                                            
+                                            showAiColorPopup = true
                                         }
                                     }
                                     // Se tudo tem contraste → não mexer! Respeitar personalização.
                                 } else {
-                                    // Sem cores personalizadas ainda — aplicar adaptação completa
+                                    // Sem cores personalizadas ainda — aplicação completa com GUARDIÃO AAA
                                     val hexColor = String.format("#%06X", 0xFFFFFF and novaCor.toArgb())
-                                    val localColors = GeminiColorHelper.computeLocalContrastColors(hexColor)
+                                    val localColors = GeminiColorHelper.enforceAAA(
+                                        GeminiColorHelper.computeLocalContrastColors(hexColor), novaCor
+                                    )
                                     aiCorDestaque = localColors.accentColor
                                     aiPrimaryText = localColors.primaryText
                                     aiSecondaryText = localColors.secondaryText
-                                    coroutineScope.launch {
+                                    pendingAiJob?.cancel()
+                                    pendingAiJob = coroutineScope.launch {
+                                        delay(500)
                                         val adaptadas = GeminiColorHelper.adaptColorsToBackground(hexColor)
-                                        if (adaptadas != null) { aiCorDestaque = adaptadas.accentColor; aiPrimaryText = adaptadas.primaryText; aiSecondaryText = adaptadas.secondaryText }
+                                        if (adaptadas != null) {
+                                            val safe = GeminiColorHelper.enforceAAA(adaptadas, novaCor)
+                                            aiCorDestaque = safe.accentColor
+                                            aiPrimaryText = safe.primaryText
+                                            aiSecondaryText = safe.secondaryText
+                                        }
                                     }
                                 }
                             }
                         }, onCorElementosChange = { novaCor ->
-                            // Aplicar a escolha do utilizador
                             aiCorDestaque = novaCor
-                            // Verificar se o fundo atual tem contraste suficiente com a nova cor de elementos
                             if (isIaActivatedGlobal) {
-                                val adaptedBg = GeminiColorHelper.computeAdaptedBackground(novaCor, corPersonalizada)
-                                if (adaptedBg != null) {
-                                    // Fundo precisa de ser adaptado!
-                                    corPersonalizadaArgb = adaptedBg.toArgb()
-                                    // Recalcular cores de texto para o novo fundo
-                                    val newBgHex = String.format("#%06X", 0xFFFFFF and adaptedBg.toArgb())
-                                    val localColors = GeminiColorHelper.computeLocalContrastColors(newBgHex)
-                                    aiPrimaryText = localColors.primaryText
-                                    aiSecondaryText = localColors.secondaryText
+                                val check = GeminiColorHelper.verificarContraste(novaCor, corPersonalizada, GeminiColorHelper.TipoComponente.INTERATIVO)
+                                if (!check.aprovado) {
+                                    pendingAiJob?.cancel()
+                                    pendingAiJob = coroutineScope.launch {
+                                        val lastPrimary = aiPrimaryText ?: Color.White
+                                        val lastSecondary = aiSecondaryText ?: Color.LightGray
+                                        originalUserPalette = CompleteAppPalette(corPersonalizada, lastPrimary, lastSecondary, novaCor)
+                                        // Aplicar fallback local IMEDIATAMENTE
+                                        val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.ACCENT, corPersonalizada)
+                                        corPersonalizadaArgb = fallback.background.toArgb()
+                                        aiCorDestaque = fallback.accentColor
+                                        aiPrimaryText = fallback.primaryText
+                                        aiSecondaryText = fallback.secondaryText
+                                        
+                                        delay(500)
+                                        
+                                        val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.ACCENT)
+                                        if (adaptadas != null) {
+                                            corPersonalizadaArgb = adaptadas.background.toArgb()
+                                            aiCorDestaque = adaptadas.accentColor
+                                            aiPrimaryText = adaptadas.primaryText
+                                            aiSecondaryText = adaptadas.secondaryText
+                                        }
+                                        
+                                        showAiColorPopup = true
+                                    }
+                                }
+                            }
+                        }, onCorTextoChange = { novaCor ->
+                            aiPrimaryText = novaCor
+                            if (isIaActivatedGlobal) {
+                                val check = GeminiColorHelper.verificarContraste(novaCor, corPersonalizada, GeminiColorHelper.TipoComponente.TEXTO_GRANDE)
+                                if (!check.aprovado) {
+                                    pendingAiJob?.cancel()
+                                    pendingAiJob = coroutineScope.launch {
+                                        val lastAccent = aiCorDestaque ?: Color.White
+                                        val lastSecondary = aiSecondaryText ?: Color.LightGray
+                                        originalUserPalette = CompleteAppPalette(corPersonalizada, novaCor, lastSecondary, lastAccent)
+                                        val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.PRIMARY_TEXT, corPersonalizada)
+                                        corPersonalizadaArgb = fallback.background.toArgb()
+                                        aiCorDestaque = fallback.accentColor
+                                        aiPrimaryText = fallback.primaryText
+                                        aiSecondaryText = fallback.secondaryText
+                                        
+                                        delay(500)
+                                        
+                                        val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.PRIMARY_TEXT)
+                                        if (adaptadas != null) {
+                                            corPersonalizadaArgb = adaptadas.background.toArgb()
+                                            aiCorDestaque = adaptadas.accentColor
+                                            aiPrimaryText = adaptadas.primaryText
+                                            aiSecondaryText = adaptadas.secondaryText
+                                        }
+                                        
+                                        showAiColorPopup = true
+                                    }
+                                }
+                            }
+                        }, onCorTextoSecundarioChange = { novaCor ->
+                            aiSecondaryText = novaCor
+                            if (isIaActivatedGlobal) {
+                                val check = GeminiColorHelper.verificarContraste(novaCor, corPersonalizada, GeminiColorHelper.TipoComponente.TEXTO_NORMAL)
+                                if (!check.aprovado) {
+                                    pendingAiJob?.cancel()
+                                    pendingAiJob = coroutineScope.launch {
+                                        val lastPrimary = aiPrimaryText ?: Color.White
+                                        val lastAccent = aiCorDestaque ?: Color.White
+                                        originalUserPalette = CompleteAppPalette(corPersonalizada, lastPrimary, novaCor, lastAccent)
+                                        val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.SECONDARY_TEXT, corPersonalizada)
+                                        corPersonalizadaArgb = fallback.background.toArgb()
+                                        aiCorDestaque = fallback.accentColor
+                                        aiPrimaryText = fallback.primaryText
+                                        aiSecondaryText = fallback.secondaryText
+                                        
+                                        delay(500)
+                                        
+                                        val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.SECONDARY_TEXT)
+                                        if (adaptadas != null) {
+                                            corPersonalizadaArgb = adaptadas.background.toArgb()
+                                            aiCorDestaque = adaptadas.accentColor
+                                            aiPrimaryText = adaptadas.primaryText
+                                            aiSecondaryText = adaptadas.secondaryText
+                                        }
+                                        
+                                        showAiColorPopup = true
+                                    }
                                 }
                             }
                         }, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, onNavigateToPersonalization = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
@@ -228,6 +329,38 @@ class MainActivity : ComponentActivity() {
                         MotoScreen.AUDIO_HAPTICS -> AudioHapticsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentFeedback = currentFeedback, onFeedbackChange = { currentFeedback = it }, currentVisualAlerts = currentVisualAlerts, onVisualAlertsChange = { currentVisualAlerts = it }, currentErrorFeedback = currentErrorFeedback, onErrorFeedbackChange = { currentErrorFeedback = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
 
                         MotoScreen.EDIT_ICONS -> EditIconsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
+                    }
+
+                    if (showAiColorPopup && originalUserPalette != null) {
+                        androidx.compose.material3.AlertDialog(
+                            onDismissRequest = { showAiColorPopup = false },
+                            title = { androidx.compose.material3.Text("Aviso de Acessibilidade") },
+                            text = { androidx.compose.material3.Text("A combinação de cores que escolheu dificulta a leitura do painel. A IA já ajustou automaticamente as cores para garantir a sua segurança e legibilidade. Deseja manter estes ajustes?") },
+                            confirmButton = {
+                                androidx.compose.material3.TextButton(onClick = {
+                                    // Manter as alterações da IA, basta fechar o popup
+                                    showAiColorPopup = false
+                                }) {
+                                    androidx.compose.material3.Text("Manter Ajustes", color = androidx.compose.ui.graphics.Color.White)
+                                }
+                            },
+                            dismissButton = {
+                                androidx.compose.material3.TextButton(onClick = {
+                                    // Reverter para as alterações sem contraste do utilizador
+                                    val manual = originalUserPalette!!
+                                    corPersonalizadaArgb = manual.background.toArgb()
+                                    aiCorDestaque = manual.accentColor
+                                    aiPrimaryText = manual.primaryText
+                                    aiSecondaryText = manual.secondaryText
+                                    showAiColorPopup = false
+                                }) {
+                                    androidx.compose.material3.Text("Reverter Alterações", color = androidx.compose.ui.graphics.Color.Gray)
+                                }
+                            },
+                            containerColor = androidx.compose.ui.graphics.Color(0xFF1E1E1E),
+                            titleContentColor = androidx.compose.ui.graphics.Color.White,
+                            textContentColor = androidx.compose.ui.graphics.Color.White
+                        )
                     }
                 }
             }

@@ -42,22 +42,24 @@ fun AudioHapticsScreen(
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
 
-    val accentColor = aiCorDestaque ?: when (currentContrast) {
+    val uiElementColor = when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
-        else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
+        else -> if (isLightBg) Color(0xFF004466) else Color.White
     }
+    val iconColor = aiCorDestaque ?: uiElementColor
+    val accentColor = aiCorDestaque ?: uiElementColor
 
     val primaryText = aiPrimaryText ?: when (currentContrast) {
-        "HIGH CONTRAST" -> Color.White
-        "NIGHT MODE" -> Color(0xFFF0F0F0)
+        "HIGH CONTRAST" -> if (isLightBg) Color.Black else Color.White
+        "NIGHT MODE" -> Color.White
         else -> if (isLightBg) Color.Black else Color.White
     }
 
     val secondaryText = aiSecondaryText ?: when (currentContrast) {
-        "HIGH CONTRAST" -> Color.White
-        "NIGHT MODE" -> Color(0xFFAAAAAA)
-        else -> if (isLightBg) Color(0xFF4A4A4A) else Color.LightGray
+        "HIGH CONTRAST" -> if (isLightBg) Color.Black else Color.White
+        "NIGHT MODE" -> Color.White
+        else -> if (isLightBg) Color.Black else Color.White
     }
 
     var piscaEsquerdo by remember { mutableStateOf(false) }
@@ -122,8 +124,8 @@ fun AudioHapticsScreen(
             Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = s.audioHapticsScreenTitle, color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(text = s.audioHapticsScreenTitle, color = accentColor, fontSize = 36.sp, fontFamily = montserratFont, modifier = Modifier.align(Alignment.Center))
+                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
 
                     Spacer(Modifier.height(16.dp))
@@ -133,13 +135,13 @@ fun AudioHapticsScreen(
                         SettingItem(titulo = s.audioHapticsTitle, subtitulo = s.feedbackDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.off, color = if (currentFeedback == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("OFF") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.audio, color = if (currentFeedback == "AUDIO") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("AUDIO") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.haptic, color = if (currentFeedback == "HAPTIC") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("HAPTIC") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.both, color = if (currentFeedback == "BOTH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onFeedbackChange("BOTH") })
+                                    Text(text = s.off, color = if (currentFeedback == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onFeedbackChange("OFF") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.audio, color = if (currentFeedback == "AUDIO") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onFeedbackChange("AUDIO") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.haptic, color = if (currentFeedback == "HAPTIC") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onFeedbackChange("HAPTIC") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.both, color = if (currentFeedback == "BOTH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onFeedbackChange("BOTH") })
                                 }
                             }
                         )
@@ -147,9 +149,9 @@ fun AudioHapticsScreen(
                         SettingItem(titulo = s.visualAlertsTitle, subtitulo = s.visualAlertsDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.off, color = if (currentVisualAlerts == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onVisualAlertsChange("OFF") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.on, color = if (currentVisualAlerts == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onVisualAlertsChange("ON") })
+                                    Text(text = s.off, color = if (currentVisualAlerts == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onVisualAlertsChange("OFF") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.on, color = if (currentVisualAlerts == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onVisualAlertsChange("ON") })
                                 }
                             }
                         )
@@ -157,11 +159,11 @@ fun AudioHapticsScreen(
                         SettingItem(titulo = s.errorFeedbackTitle, subtitulo = s.errorFeedbackDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.standard, color = if (currentErrorFeedback == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("STANDARD") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.hapticBoost, color = if (currentErrorFeedback == "HAPTIC BOOST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("HAPTIC BOOST") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.maximum, color = if (currentErrorFeedback == "MAXIMUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorFeedbackChange("MAXIMUM") })
+                                    Text(text = s.standard, color = if (currentErrorFeedback == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onErrorFeedbackChange("STANDARD") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.hapticBoost, color = if (currentErrorFeedback == "HAPTIC BOOST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onErrorFeedbackChange("HAPTIC BOOST") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.maximum, color = if (currentErrorFeedback == "MAXIMUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onErrorFeedbackChange("MAXIMUM") })
                                 }
                             }
                         )
@@ -171,7 +173,7 @@ fun AudioHapticsScreen(
                 }
             }
 
-            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = accentColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
+            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = accentColor, iconColor = iconColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
         }
     }
 }

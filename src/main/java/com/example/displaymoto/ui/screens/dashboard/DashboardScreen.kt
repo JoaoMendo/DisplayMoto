@@ -80,26 +80,29 @@ fun DashboardScreen(
     onNavigateToSettings: () -> Unit,
     aiCorDestaque: Color? = null,
     aiPrimaryText: Color? = null,
-    aiSecondaryText: Color? = null
+    aiSecondaryText: Color? = null,
+    onMarchaChange: (String) -> Unit = {}
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
 
-    val accentColor = aiCorDestaque ?: when (currentContrast) {
+    val uiElementColor = when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
-        else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
+        else -> if (isLightBg) Color(0xFF004466) else Color.White
     }
 
+    val iconColor = aiCorDestaque ?: uiElementColor
+
     val primaryText = aiPrimaryText ?: when (currentContrast) {
-        "HIGH CONTRAST" -> Color.White
-        "NIGHT MODE" -> Color(0xFFF0F0F0)
+        "HIGH CONTRAST" -> if (isLightBg) Color.Black else Color.White
+        "NIGHT MODE" -> Color.White
         else -> if (isLightBg) Color.Black else Color.White
     }
 
     val secondaryText = aiSecondaryText ?: when (currentContrast) {
-        "HIGH CONTRAST" -> Color.White
-        "NIGHT MODE" -> Color(0xFFAAAAAA)
-        else -> if (isLightBg) Color(0xFF4A4A4A) else Color.LightGray
+        "HIGH CONTRAST" -> if (isLightBg) Color.Black else Color.White
+        "NIGHT MODE" -> Color.White
+        else -> if (isLightBg) Color.Black else Color.White
     }
 
     // NOVO: O Texto fica BOLD se for Alto Contraste!
@@ -112,7 +115,6 @@ fun DashboardScreen(
     var piscaEsquerdo by remember { mutableStateOf(false) }
     var piscaDireito by remember { mutableStateOf(false) }
     var motoLigada by remember { mutableStateOf(false) }
-    var marcha by remember { mutableStateOf("P") }
     var velocidadeTarget by remember { mutableFloatStateOf(0f) }
     var modeIdx by remember { mutableIntStateOf(1) }
 
@@ -156,9 +158,9 @@ fun DashboardScreen(
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(corFundoAtual)) {
             TopBarSection(luz1, luz2, luz3, luz4, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.12f).padding(horizontal = 32.dp))
-            MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marcha, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, accentColor, contrastWeight, { motoLigada = it }, { marcha = it }, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.63f).padding(horizontal = 32.dp))
-            InfoBarSection(odometro, autonomia, consumo, primaryText, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
-            BottomBarSection(modeIdx, primaryText, secondaryText, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
+            MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.63f).padding(horizontal = 32.dp))
+            InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
+            BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
         }
 
         if (mostrarAviso) {
@@ -306,24 +308,24 @@ fun EscalaTexto(texto: String, offsetX: Dp, offsetY: Dp, color: Color, weight: F
 fun EscalaTempTexto(texto: String, offsetX: Dp, offsetY: Dp, color: Color, weight: FontWeight) { Text(texto, color = color, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = weight, modifier = Modifier.offset(x = offsetX, y = offsetY)) }
 
 @Composable
-private fun InfoBarSection(odometro: Float, autonomia: Float, consumo: Float, primaryText: Color, contrastWeight: FontWeight, modifier: Modifier = Modifier) {
+private fun InfoBarSection(odometro: Float, autonomia: Float, consumo: Float, primaryText: Color, iconColor: Color, contrastWeight: FontWeight, modifier: Modifier = Modifier) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-        Icon(painter = painterResource(id = R.drawable.ic_odometro), contentDescription = null, tint = primaryText, modifier = Modifier.size(24.dp))
+        Icon(painter = painterResource(id = R.drawable.ic_odometro), contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Text(String.format(Locale.US, "%05dkm", odometro.toInt()), color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
         Spacer(modifier = Modifier.width(16.dp)); Text("|", color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight); Spacer(modifier = Modifier.width(16.dp))
-        Icon(painter = painterResource(id = R.drawable.ic_autonomia), contentDescription = null, tint = primaryText, modifier = Modifier.size(24.dp))
+        Icon(painter = painterResource(id = R.drawable.ic_autonomia), contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Text(String.format(Locale.US, "%dkm", autonomia.toInt()), color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
         Spacer(modifier = Modifier.width(16.dp)); Text("|", color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight); Spacer(modifier = Modifier.width(16.dp))
-        Icon(painter = painterResource(id = R.drawable.ic_consumo), contentDescription = null, tint = primaryText, modifier = Modifier.size(24.dp))
+        Icon(painter = painterResource(id = R.drawable.ic_consumo), contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Text(String.format(Locale.US, "%.1fkwh", consumo), color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
     }
 }
 
 @Composable
-private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Color, contrastWeight: FontWeight, onModeChange: (Int) -> Unit, onNavigateToSettings: () -> Unit = {}, modifier: Modifier = Modifier) {
+private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Color, uiElementColor: Color, iconColor: Color, contrastWeight: FontWeight, onModeChange: (Int) -> Unit, onNavigateToSettings: () -> Unit = {}, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val modes = listOf("Eco", "Standard", "Sport")
     var isPlaying by remember { mutableStateOf(true) }
@@ -343,20 +345,20 @@ private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Co
                     Text("In The End", color = primaryText, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Text("Linkin Park", color = secondaryText, fontSize = 14.sp, fontFamily = agencyFb, fontWeight = contrastWeight, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     Spacer(modifier = Modifier.height(6.dp))
-                    LinearProgressIndicator(progress = { musicProgress }, modifier = Modifier.fillMaxWidth().height(2.dp), color = primaryText, trackColor = secondaryText.copy(alpha = 0.3f))
+                    LinearProgressIndicator(progress = { musicProgress }, modifier = Modifier.fillMaxWidth().height(2.dp), color = uiElementColor, trackColor = secondaryText.copy(alpha = 0.3f))
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipPrevious, null, tint = primaryText) }
-                    IconButton(onClick = { isPlaying = !isPlaying }, modifier = Modifier.size(40.dp)) { Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, tint = primaryText, modifier = Modifier.size(32.dp)) }
-                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipNext, null, tint = primaryText) }
+                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipPrevious, null, tint = iconColor) }
+                    IconButton(onClick = { isPlaying = !isPlaying }, modifier = Modifier.size(40.dp)) { Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, tint = iconColor, modifier = Modifier.size(32.dp)) }
+                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipNext, null, tint = iconColor) }
                 }
             }
         }
         Row(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onModeChange(if (modeIdx - 1 < 0) modes.size - 1 else modeIdx - 1) }) { Icon(painterResource(id = R.drawable.ic_seta_esquerda), null, tint = primaryText, modifier = Modifier.size(36.dp)) }
+            IconButton(onClick = { onModeChange(if (modeIdx - 1 < 0) modes.size - 1 else modeIdx - 1) }) { Icon(painterResource(id = R.drawable.ic_seta_esquerda), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
             Text(modes[modeIdx], color = primaryText, fontSize = 32.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
-            IconButton(onClick = { onModeChange((modeIdx + 1) % modes.size) }) { Icon(painterResource(id = R.drawable.ic_seta_direita), null, tint = primaryText, modifier = Modifier.size(36.dp)) }
+            IconButton(onClick = { onModeChange((modeIdx + 1) % modes.size) }) { Icon(painterResource(id = R.drawable.ic_seta_direita), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
         }
         Box(modifier = Modifier.align(Alignment.BottomEnd).size(430.dp, 80.dp).paint(painterResource(id = R.drawable.fundo_menu), contentScale = ContentScale.FillBounds), contentAlignment = Alignment.Center) {
             Row(modifier = Modifier.padding(start = 80.dp, end = 32.dp), horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -366,7 +368,7 @@ private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Co
                             R.drawable.ic_settings -> onNavigateToSettings()
                             R.drawable.ic_bluetooth -> try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) } catch (e: Exception) {}
                         }
-                    }) { Icon(painterResource(id = icon), null, tint = primaryText, modifier = Modifier.size(36.dp)) }
+                    }) { Icon(painterResource(id = icon), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
                 }
             }
         }

@@ -40,14 +40,16 @@ fun BaseSettingsScreen(
     aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
-    val corDestaque = aiCorDestaque ?: when (currentContrast) {
+    val uiElementColor = when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
-        else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
+        else -> if (isLightBg) Color(0xFF004466) else Color.White
     }
+    val iconColor = aiCorDestaque ?: uiElementColor
+    val corDestaque = aiCorDestaque ?: uiElementColor
     val primaryText = aiPrimaryText ?: when (currentContrast) {
-        "HIGH CONTRAST" -> Color.White
-        "NIGHT MODE" -> Color(0xFFF0F0F0)
+        "HIGH CONTRAST" -> if (isLightBg) Color.Black else Color.White
+        "NIGHT MODE" -> Color.White
         else -> if (isLightBg) Color.Black else Color.White
     }
 
@@ -94,19 +96,19 @@ fun BaseSettingsScreen(
             Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(title, color = corDestaque, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text(s.back, color = corDestaque, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(title, color = corDestaque, fontSize = 36.sp, fontFamily = montserratFont, modifier = Modifier.align(Alignment.Center))
+                        Text(s.back, color = corDestaque, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
                     Spacer(Modifier.height(32.dp))
                     Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                        Text(s.workInProgress, color = primaryText, fontSize = 32.sp, fontFamily = agencyFbFont)
+                        Text(s.workInProgress, color = primaryText, fontSize = 32.sp, fontFamily = robotoFont)
                     }
                 }
             }
 
             BottomStatusSection(
                 v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual,
-                corDestaque = corDestaque, textColor = primaryText, modifier = Modifier.wrapContentHeight()
+                corDestaque = corDestaque, iconColor = iconColor, textColor = primaryText, modifier = Modifier.wrapContentHeight()
             )
         }
     }

@@ -43,22 +43,24 @@ fun TouchScreen(
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
 
-    val accentColor = aiCorDestaque ?: when (currentContrast) {
+    val uiElementColor = when (currentContrast) {
         "HIGH CONTRAST" -> if (corPersonalizada.luminance() < 0.35f) lerp(corPersonalizada, Color.White, 0.7f) else corPersonalizada
         "NIGHT MODE" -> lerp(corPersonalizada, Color.White, 0.35f)
-        else -> if (isLightBg) Color(0xFF004466) else Color(0xFF00BFFF)
+        else -> if (isLightBg) Color(0xFF004466) else Color.White
     }
+    val iconColor = aiCorDestaque ?: uiElementColor
+    val accentColor = aiCorDestaque ?: uiElementColor
 
     val primaryText = aiPrimaryText ?: when (currentContrast) {
-        "HIGH CONTRAST" -> Color.White
-        "NIGHT MODE" -> Color(0xFFF0F0F0)
+        "HIGH CONTRAST" -> if (isLightBg) Color.Black else Color.White
+        "NIGHT MODE" -> Color.White
         else -> if (isLightBg) Color.Black else Color.White
     }
 
     val secondaryText = aiSecondaryText ?: when (currentContrast) {
-        "HIGH CONTRAST" -> Color.White
-        "NIGHT MODE" -> Color(0xFFAAAAAA)
-        else -> if (isLightBg) Color(0xFF4A4A4A) else Color.LightGray
+        "HIGH CONTRAST" -> if (isLightBg) Color.Black else Color.White
+        "NIGHT MODE" -> Color.White
+        else -> if (isLightBg) Color.Black else Color.White
     }
 
     var piscaEsquerdo by remember { mutableStateOf(false) }
@@ -123,8 +125,8 @@ fun TouchScreen(
             Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp, vertical = 16.dp)) {
                 Column(modifier = Modifier.fillMaxSize()) {
                     Box(modifier = Modifier.fillMaxWidth()) {
-                        Text(text = s.touchSettingsTitle, color = accentColor, fontSize = 36.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.Center))
-                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
+                        Text(text = s.touchSettingsTitle, color = accentColor, fontSize = 36.sp, fontFamily = montserratFont, modifier = Modifier.align(Alignment.Center))
+                        Text(text = s.back, color = accentColor, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.align(Alignment.CenterEnd).clickable { onNavigateBack() }.padding(8.dp))
                     }
 
                     Spacer(Modifier.height(16.dp))
@@ -134,11 +136,11 @@ fun TouchScreen(
                         SettingItem(titulo = s.touchAreasTitle, subtitulo = s.touchAreasDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.standard, color = if (currentTouchArea == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("STANDARD") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.large, color = if (currentTouchArea == "LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("LARGE") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.extraLarge, color = if (currentTouchArea == "EXTRA LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onTouchAreaChange("EXTRA LARGE") })
+                                    Text(text = s.standard, color = if (currentTouchArea == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTouchAreaChange("STANDARD") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.large, color = if (currentTouchArea == "LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTouchAreaChange("LARGE") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.extraLarge, color = if (currentTouchArea == "EXTRA LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTouchAreaChange("EXTRA LARGE") })
                                 }
                             }
                         )
@@ -146,11 +148,11 @@ fun TouchScreen(
                         SettingItem(titulo = s.methodTitle, subtitulo = s.methodDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.directTouch, color = if (currentMethod == "DIRECT TOUCH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("DIRECT TOUCH") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.swipe, color = if (currentMethod == "SWIPE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("SWIPE") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.joystick, color = if (currentMethod == "JOYSTICK") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onMethodChange("JOYSTICK") })
+                                    Text(text = s.directTouch, color = if (currentMethod == "DIRECT TOUCH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onMethodChange("DIRECT TOUCH") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.swipe, color = if (currentMethod == "SWIPE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onMethodChange("SWIPE") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.joystick, color = if (currentMethod == "JOYSTICK") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onMethodChange("JOYSTICK") })
                                 }
                             }
                         )
@@ -158,11 +160,11 @@ fun TouchScreen(
                         SettingItem(titulo = s.responseTimeTitle, subtitulo = s.responseTimeDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.fast, color = if (currentResponseTime == "FAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("FAST") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.medium, color = if (currentResponseTime == "MEDIUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("MEDIUM") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.slow, color = if (currentResponseTime == "SLOW") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onResponseTimeChange("SLOW") })
+                                    Text(text = s.fast, color = if (currentResponseTime == "FAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onResponseTimeChange("FAST") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.medium, color = if (currentResponseTime == "MEDIUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onResponseTimeChange("MEDIUM") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.slow, color = if (currentResponseTime == "SLOW") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onResponseTimeChange("SLOW") })
                                 }
                             }
                         )
@@ -170,9 +172,9 @@ fun TouchScreen(
                         SettingItem(titulo = s.errorPreventionTitle, subtitulo = s.errorPreventionDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.on, color = if (currentErrorPrevention == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorPreventionChange("ON") })
-                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont)
-                                    Text(text = s.off, color = if (currentErrorPrevention == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = agencyFbFont, modifier = Modifier.clickable { onErrorPreventionChange("OFF") })
+                                    Text(text = s.on, color = if (currentErrorPrevention == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onErrorPreventionChange("ON") })
+                                    Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                                    Text(text = s.off, color = if (currentErrorPrevention == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onErrorPreventionChange("OFF") })
                                 }
                             }
                         )
@@ -182,7 +184,7 @@ fun TouchScreen(
                 }
             }
 
-            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = accentColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
+            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = accentColor, iconColor = iconColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
         }
     }
 }
