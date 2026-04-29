@@ -18,6 +18,9 @@ import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.em
@@ -31,6 +34,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 val LocalAnimationMultiplier = compositionLocalOf { 1f }
+val LocalMissClickTracker = compositionLocalOf<() -> Unit> { {} }
 
 enum class MotoScreen {
     DASHBOARD, SETTINGS, PERSONALIZATION, VISUAL_PREFERENCES, TOUCH, COGNITIVE_ASSISTANT, AUDIO_HAPTICS, EDIT_ICONS
@@ -95,6 +99,18 @@ class MainActivity : ComponentActivity() {
             var appLanguageName by rememberSaveable { mutableStateOf(AppLanguage.EN.name) }
             val appLanguage = AppLanguage.valueOf(appLanguageName)
             val s = getAppStrings(appLanguage)
+            val context = LocalContext.current
+
+            var globalMissedClicks by rememberSaveable { mutableIntStateOf(0) }
+            val onMissClick: () -> Unit = {
+                globalMissedClicks++
+                if (globalMissedClicks >= 5) {
+                    textSizeScale = 1.3f
+                    val msg = if (appLanguage == AppLanguage.PT) "IA detetou dificuldades: Tamanho de letra aumentado globalmente." else "AI Detected Difficulty: Global text size increased."
+                    android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_LONG).show()
+                    globalMissedClicks = 0
+                }
+            }
 
             var autonomiaGlobal by rememberSaveable { mutableFloatStateOf(200f) }
             var aCarregarGlobal by rememberSaveable { mutableStateOf(false) }
@@ -161,11 +177,19 @@ class MainActivity : ComponentActivity() {
             CompositionLocalProvider(
                 LocalDensity provides customDensity,
                 LocalTextStyle provides customTextStyle,
-                LocalAnimationMultiplier provides animationScale
+                LocalAnimationMultiplier provides animationScale,
+                LocalMissClickTracker provides onMissClick
             ) {
-                Surface(modifier = modifierComFiltro, color = corDoFundoTema) {
+                Surface(
+                    modifier = modifierComFiltro.pointerInput(Unit) {
+                        detectTapGestures(
+                            onTap = { onMissClick() }
+                        )
+                    }, 
+                    color = corDoFundoTema
+                ) {
                     when (currentScreen) {
-                        MotoScreen.DASHBOARD -> DashboardScreen(s = s, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, autonomiaInicial = autonomiaGlobal, aCarregarInicial = aCarregarGlobal, onBateriaChange = { auto, carregando -> autonomiaGlobal = auto; aCarregarGlobal = carregando }, onNavigateToSettings = { currentScreenName = MotoScreen.SETTINGS.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText)
+                        MotoScreen.DASHBOARD -> DashboardScreen(s = s, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, autonomiaInicial = autonomiaGlobal, aCarregarInicial = aCarregarGlobal, onBateriaChange = { auto, carregando -> autonomiaGlobal = auto; aCarregarGlobal = carregando }, onNavigateToSettings = { currentScreenName = MotoScreen.SETTINGS.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, isSimplifiedMode = (currentDensity == "ESSENTIAL" && currentLanguage == "SIMPLE"))
                         MotoScreen.SETTINGS -> SettingsScreen(s = s, currentAppLanguage = appLanguage, onAppLanguageChange = { appLanguageName = it.name }, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaMota, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onCorFundoChange = { novaCor -> 
                             corPersonalizadaArgb = novaCor.toArgb()
                             currentContrast = "STANDARD"

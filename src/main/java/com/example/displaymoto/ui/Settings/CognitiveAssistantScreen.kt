@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.example.displaymoto.AppStrings
 import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
@@ -136,11 +137,11 @@ fun CognitiveAssistantScreen(
                         SettingItem(titulo = s.langComplexityTitle, subtitulo = s.langComplexityDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.simple, color = if (currentLanguage == "SIMPLE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onLanguageChange("SIMPLE") })
+                                    Text(text = s.simple, color = if (currentLanguage == "SIMPLE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentLanguage == "SIMPLE") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onLanguageChange("SIMPLE") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.standard, color = if (currentLanguage == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onLanguageChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentLanguage == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentLanguage == "STANDARD") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onLanguageChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.technical, color = if (currentLanguage == "TECHNICAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onLanguageChange("TECHNICAL") })
+                                    Text(text = s.technical, color = if (currentLanguage == "TECHNICAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentLanguage == "TECHNICAL") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onLanguageChange("TECHNICAL") })
                                 }
                             }
                         )
@@ -148,11 +149,11 @@ fun CognitiveAssistantScreen(
                         SettingItem(titulo = s.infoDensityTitle, subtitulo = s.infoDensityDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.essential, color = if (currentDensity == "ESSENTIAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onDensityChange("ESSENTIAL") })
+                                    Text(text = s.essential, color = if (currentDensity == "ESSENTIAL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentDensity == "ESSENTIAL") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onDensityChange("ESSENTIAL") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.standard, color = if (currentDensity == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onDensityChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentDensity == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentDensity == "STANDARD") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onDensityChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.full, color = if (currentDensity == "FULL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onDensityChange("FULL") })
+                                    Text(text = s.full, color = if (currentDensity == "FULL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentDensity == "FULL") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onDensityChange("FULL") })
                                 }
                             }
                         )
@@ -160,11 +161,11 @@ fun CognitiveAssistantScreen(
                         SettingItem(titulo = s.contextHelpTitle, subtitulo = s.contextHelpDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.off, color = if (currentHelp == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onHelpChange("OFF") })
+                                    Text(text = s.off, color = if (currentHelp == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentHelp == "OFF") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onHelpChange("OFF") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.onDemand, color = if (currentHelp == "ON DEMAND") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onHelpChange("ON DEMAND") })
+                                    Text(text = s.onDemand, color = if (currentHelp == "ON DEMAND") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentHelp == "ON DEMAND") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onHelpChange("ON DEMAND") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.alwaysOn, color = if (currentHelp == "ALWAYS ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onHelpChange("ALWAYS ON") })
+                                    Text(text = s.alwaysOn, color = if (currentHelp == "ALWAYS ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentHelp == "ALWAYS ON") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onHelpChange("ALWAYS ON") })
                                 }
                             }
                         )
@@ -172,11 +173,11 @@ fun CognitiveAssistantScreen(
                         SettingItem(titulo = s.alertsTitle, subtitulo = s.alertsDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.criticalOnly, color = if (currentAlerts == "CRITICAL ONLY") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onAlertsChange("CRITICAL ONLY") })
+                                    Text(text = s.criticalOnly, color = if (currentAlerts == "CRITICAL ONLY") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentAlerts == "CRITICAL ONLY") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onAlertsChange("CRITICAL ONLY") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.standard, color = if (currentAlerts == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onAlertsChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentAlerts == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentAlerts == "STANDARD") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onAlertsChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.all, color = if (currentAlerts == "ALL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onAlertsChange("ALL") })
+                                    Text(text = s.all, color = if (currentAlerts == "ALL") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentAlerts == "ALL") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onAlertsChange("ALL") })
                                 }
                             }
                         )

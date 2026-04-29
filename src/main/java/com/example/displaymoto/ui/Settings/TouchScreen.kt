@@ -18,6 +18,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.example.displaymoto.AppStrings
 import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
@@ -136,11 +137,11 @@ fun TouchScreen(
                         SettingItem(titulo = s.touchAreasTitle, subtitulo = s.touchAreasDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.standard, color = if (currentTouchArea == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTouchAreaChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentTouchArea == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentTouchArea == "STANDARD") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onTouchAreaChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.large, color = if (currentTouchArea == "LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTouchAreaChange("LARGE") })
+                                    Text(text = s.large, color = if (currentTouchArea == "LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentTouchArea == "LARGE") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onTouchAreaChange("LARGE") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.extraLarge, color = if (currentTouchArea == "EXTRA LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTouchAreaChange("EXTRA LARGE") })
+                                    Text(text = s.extraLarge, color = if (currentTouchArea == "EXTRA LARGE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentTouchArea == "EXTRA LARGE") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onTouchAreaChange("EXTRA LARGE") })
                                 }
                             }
                         )
@@ -148,11 +149,11 @@ fun TouchScreen(
                         SettingItem(titulo = s.methodTitle, subtitulo = s.methodDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.directTouch, color = if (currentMethod == "DIRECT TOUCH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onMethodChange("DIRECT TOUCH") })
+                                    Text(text = s.directTouch, color = if (currentMethod == "DIRECT TOUCH") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentMethod == "DIRECT TOUCH") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onMethodChange("DIRECT TOUCH") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.swipe, color = if (currentMethod == "SWIPE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onMethodChange("SWIPE") })
+                                    Text(text = s.swipe, color = if (currentMethod == "SWIPE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentMethod == "SWIPE") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onMethodChange("SWIPE") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.joystick, color = if (currentMethod == "JOYSTICK") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onMethodChange("JOYSTICK") })
+                                    Text(text = s.joystick, color = if (currentMethod == "JOYSTICK") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentMethod == "JOYSTICK") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onMethodChange("JOYSTICK") })
                                 }
                             }
                         )
@@ -160,11 +161,11 @@ fun TouchScreen(
                         SettingItem(titulo = s.responseTimeTitle, subtitulo = s.responseTimeDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.fast, color = if (currentResponseTime == "FAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onResponseTimeChange("FAST") })
+                                    Text(text = s.fast, color = if (currentResponseTime == "FAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentResponseTime == "FAST") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onResponseTimeChange("FAST") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.medium, color = if (currentResponseTime == "MEDIUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onResponseTimeChange("MEDIUM") })
+                                    Text(text = s.medium, color = if (currentResponseTime == "MEDIUM") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentResponseTime == "MEDIUM") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onResponseTimeChange("MEDIUM") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.slow, color = if (currentResponseTime == "SLOW") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onResponseTimeChange("SLOW") })
+                                    Text(text = s.slow, color = if (currentResponseTime == "SLOW") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentResponseTime == "SLOW") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onResponseTimeChange("SLOW") })
                                 }
                             }
                         )
@@ -172,9 +173,9 @@ fun TouchScreen(
                         SettingItem(titulo = s.errorPreventionTitle, subtitulo = s.errorPreventionDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.on, color = if (currentErrorPrevention == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onErrorPreventionChange("ON") })
+                                    Text(text = s.on, color = if (currentErrorPrevention == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentErrorPrevention == "ON") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onErrorPreventionChange("ON") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.off, color = if (currentErrorPrevention == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onErrorPreventionChange("OFF") })
+                                    Text(text = s.off, color = if (currentErrorPrevention == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentErrorPrevention == "OFF") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onErrorPreventionChange("OFF") })
                                 }
                             }
                         )

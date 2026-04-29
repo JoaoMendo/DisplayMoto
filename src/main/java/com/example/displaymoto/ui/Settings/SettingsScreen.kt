@@ -245,9 +245,15 @@ fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, isCharging:
 }
 
 @Composable
-fun SettingItem(titulo: String, subtitulo: String, primaryColor: Color = Color.White, secondaryColor: Color = Color.Gray, onClick: () -> Unit = {}, conteudo: @Composable () -> Unit = {}) {
+fun SettingItem(titulo: String, subtitulo: String, primaryColor: Color = Color.White, secondaryColor: Color = Color.Gray, onClick: (() -> Unit)? = null, conteudo: @Composable () -> Unit = {}) {
+    val missClickTracker = com.example.displaymoto.LocalMissClickTracker.current
     // Adicionamos Role.Button para o Android saber que isto é clicável e dar o som de feedback correto
-    Row(modifier = Modifier.fillMaxWidth().clickable(onClickLabel = "Open $titulo setting", role = Role.Button) { onClick() }.padding(vertical = 12.dp, horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
+    val modifier = if (onClick != null) {
+        Modifier.fillMaxWidth().clickable(onClickLabel = "Open $titulo setting", role = Role.Button) { onClick() }.padding(vertical = 12.dp, horizontal = 16.dp)
+    } else {
+        Modifier.fillMaxWidth().clickable(onClickLabel = "Open $titulo setting", role = Role.Button) { missClickTracker() }.padding(vertical = 12.dp, horizontal = 16.dp)
+    }
+    Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
             Text(titulo, color = primaryColor, fontSize = 28.sp, fontFamily = montserratFont)
             Text(subtitulo, color = secondaryColor, fontSize = 18.sp, fontFamily = robotoFont)

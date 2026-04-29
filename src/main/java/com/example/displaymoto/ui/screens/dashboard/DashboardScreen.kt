@@ -81,7 +81,8 @@ fun DashboardScreen(
     aiCorDestaque: Color? = null,
     aiPrimaryText: Color? = null,
     aiSecondaryText: Color? = null,
-    onMarchaChange: (String) -> Unit = {}
+    onMarchaChange: (String) -> Unit = {},
+    isSimplifiedMode: Boolean = false
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
 
@@ -157,10 +158,38 @@ fun DashboardScreen(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(corFundoAtual)) {
-            TopBarSection(luz1, luz2, luz3, luz4, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.12f).padding(horizontal = 32.dp))
-            MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.63f).padding(horizontal = 32.dp))
-            InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
-            BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
+            if (isSimplifiedMode) {
+                // === MODO SIMPLIFICADO: Layout ultra-limpo ===
+                TopBarSection(luz1, luz2, luz3, luz4, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.12f).padding(horizontal = 32.dp))
+                SimplifiedContentSection(
+                    velocidadeAnimada = velocidadeAnimadaState.value,
+                    marcha = marchaAtual,
+                    bateriaPercentagem = bateriaPercentagem,
+                    aCarregar = aCarregar,
+                    motoLigada = motoLigada,
+                    velocidadeTarget = velocidadeTarget,
+                    primaryText = primaryText,
+                    secondaryText = secondaryText,
+                    accentColor = uiElementColor,
+                    contrastWeight = contrastWeight,
+                    onMotoLigadaChange = { motoLigada = it },
+                    onMarchaChange = onMarchaChange,
+                    onVelocidadeTargetChange = { velocidadeTarget = it },
+                    onToggleLuz1 = { luz1 = !luz1 }, onToggleLuz2 = { luz2 = !luz2 },
+                    onToggleLuz3 = { luz3 = !luz3 }, onToggleLuz4 = { luz4 = !luz4 },
+                    onTogglePiscaEsq = { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false },
+                    onTogglePiscaDir = { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false },
+                    onToggleCarga = { aCarregar = !aCarregar },
+                    modifier = Modifier.weight(0.73f).padding(horizontal = 32.dp)
+                )
+                BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f), isSimplified = true)
+            } else {
+                // === MODO NORMAL: Layout completo ===
+                TopBarSection(luz1, luz2, luz3, luz4, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.12f).padding(horizontal = 32.dp))
+                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.63f).padding(horizontal = 32.dp))
+                InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
+                BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
+            }
         }
 
         if (mostrarAviso) {
@@ -307,6 +336,71 @@ fun EscalaTexto(texto: String, offsetX: Dp, offsetY: Dp, color: Color, weight: F
 @Composable
 fun EscalaTempTexto(texto: String, offsetX: Dp, offsetY: Dp, color: Color, weight: FontWeight) { Text(texto, color = color, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = weight, modifier = Modifier.offset(x = offsetX, y = offsetY)) }
 
+// === MODO SIMPLIFICADO: Layout ultra-limpo para utilizadores com perfil cognitivo simples ===
+@Composable
+private fun SimplifiedContentSection(
+    velocidadeAnimada: Float, marcha: String, bateriaPercentagem: Float, aCarregar: Boolean,
+    motoLigada: Boolean, velocidadeTarget: Float,
+    primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight,
+    onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit,
+    onVelocidadeTargetChange: (Float) -> Unit,
+    onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit,
+    onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val focusRequester = remember { FocusRequester() }
+    LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    Box(
+        modifier = modifier.fillMaxWidth().focusRequester(focusRequester).focusable().onKeyEvent { event ->
+            if (event.type == KeyEventType.KeyDown) {
+                when (event.key) {
+                    Key.Enter, Key.NumPadEnter -> { val proximoEstado = !motoLigada; onMotoLigadaChange(proximoEstado); if (proximoEstado) onMarchaChange("D") else { onMarchaChange("P"); onVelocidadeTargetChange(0f) }; true }
+                    Key.C -> { if (velocidadeAnimada < 1f) onToggleCarga(); true }
+                    Key.W -> { if (motoLigada && bateriaPercentagem > 0f && !aCarregar) onVelocidadeTargetChange(minOf(120f, velocidadeTarget + 5f)); true }
+                    Key.S -> { if (motoLigada && !aCarregar) onVelocidadeTargetChange(maxOf(0f, velocidadeTarget - 8f)); true }
+                    Key.D -> { if (motoLigada) onMarchaChange("D"); true }
+                    Key.N -> { if (motoLigada) onMarchaChange("N"); true }
+                    Key.P -> { if (motoLigada) onMarchaChange("P"); true }
+                    Key.One, Key.NumPad1 -> { onToggleLuz1(); true }
+                    Key.Two, Key.NumPad2 -> { onToggleLuz2(); true }
+                    Key.Three, Key.NumPad3 -> { onToggleLuz3(); true }
+                    Key.Four, Key.NumPad4 -> { onToggleLuz4(); true }
+                    Key.DirectionLeft -> { onTogglePiscaEsq(); true }
+                    Key.DirectionRight -> { onTogglePiscaDir(); true }
+                    else -> false
+                }
+            } else false
+        },
+        contentAlignment = Alignment.Center
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            // Marcha
+            Text(marcha, color = secondaryText, fontSize = 56.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+            // Velocidade GIGANTE
+            Text("${velocidadeAnimada.toInt()}", color = primaryText, fontSize = 180.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+            Text("km/h", color = secondaryText, fontSize = 32.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+            Spacer(modifier = Modifier.height(24.dp))
+            // Bateria simples
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                val corBateria = when {
+                    aCarregar -> accentColor
+                    bateriaPercentagem <= 20f -> Color.Red
+                    else -> Color.Green
+                }
+                Icon(painter = painterResource(id = R.drawable.ic_autonomia), contentDescription = "Battery", tint = corBateria, modifier = Modifier.size(40.dp))
+                Spacer(modifier = Modifier.width(12.dp))
+                Text("${bateriaPercentagem.toInt()}%", color = primaryText, fontSize = 48.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                if (aCarregar) {
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("⚡", fontSize = 36.sp)
+                }
+            }
+        }
+    }
+}
+
+
 @Composable
 private fun InfoBarSection(odometro: Float, autonomia: Float, consumo: Float, primaryText: Color, iconColor: Color, contrastWeight: FontWeight, modifier: Modifier = Modifier) {
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
@@ -325,7 +419,7 @@ private fun InfoBarSection(odometro: Float, autonomia: Float, consumo: Float, pr
 }
 
 @Composable
-private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Color, uiElementColor: Color, iconColor: Color, contrastWeight: FontWeight, onModeChange: (Int) -> Unit, onNavigateToSettings: () -> Unit = {}, modifier: Modifier = Modifier) {
+private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Color, uiElementColor: Color, iconColor: Color, contrastWeight: FontWeight, onModeChange: (Int) -> Unit, onNavigateToSettings: () -> Unit = {}, modifier: Modifier = Modifier, isSimplified: Boolean = false) {
     val context = LocalContext.current
     val modes = listOf("Eco", "Standard", "Sport")
     var isPlaying by remember { mutableStateOf(true) }
@@ -334,24 +428,27 @@ private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Co
     LaunchedEffect(isPlaying) { while (isPlaying) { delay(1000); musicProgress += 0.005f; if (musicProgress > 1f) musicProgress = 0f } }
 
     Box(modifier = modifier.fillMaxWidth()) {
-        Box(modifier = Modifier.align(Alignment.BottomStart).size(430.dp, 80.dp), contentAlignment = Alignment.CenterStart) {
-            Box(modifier = Modifier.matchParentSize().graphicsLayer { scaleX = -1f }.paint(painterResource(id = R.drawable.fundo_menu), contentScale = ContentScale.FillBounds))
-            Row(modifier = Modifier.fillMaxSize().padding(start = 32.dp, end = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(56.dp).background(Color.DarkGray, CircleShape).clip(CircleShape), contentAlignment = Alignment.Center) {
-                    Image(painter = painterResource(id = R.drawable.ic_musica_fundo), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
-                }
-                Spacer(modifier = Modifier.width(16.dp))
-                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
-                    Text("In The End", color = primaryText, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text("Linkin Park", color = secondaryText, fontSize = 14.sp, fontFamily = agencyFb, fontWeight = contrastWeight, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LinearProgressIndicator(progress = { musicProgress }, modifier = Modifier.fillMaxWidth().height(2.dp), color = uiElementColor, trackColor = secondaryText.copy(alpha = 0.3f))
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipPrevious, null, tint = iconColor) }
-                    IconButton(onClick = { isPlaying = !isPlaying }, modifier = Modifier.size(40.dp)) { Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, tint = iconColor, modifier = Modifier.size(32.dp)) }
-                    IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipNext, null, tint = iconColor) }
+        // Leitor de música: escondido no modo simplificado
+        if (!isSimplified) {
+            Box(modifier = Modifier.align(Alignment.BottomStart).size(430.dp, 80.dp), contentAlignment = Alignment.CenterStart) {
+                Box(modifier = Modifier.matchParentSize().graphicsLayer { scaleX = -1f }.paint(painterResource(id = R.drawable.fundo_menu), contentScale = ContentScale.FillBounds))
+                Row(modifier = Modifier.fillMaxSize().padding(start = 32.dp, end = 24.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(56.dp).background(Color.DarkGray, CircleShape).clip(CircleShape), contentAlignment = Alignment.Center) {
+                        Image(painter = painterResource(id = R.drawable.ic_musica_fundo), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
+                    }
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                        Text("In The End", color = primaryText, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text("Linkin Park", color = secondaryText, fontSize = 14.sp, fontFamily = agencyFb, fontWeight = contrastWeight, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LinearProgressIndicator(progress = { musicProgress }, modifier = Modifier.fillMaxWidth().height(2.dp), color = uiElementColor, trackColor = secondaryText.copy(alpha = 0.3f))
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
+                        IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipPrevious, null, tint = iconColor) }
+                        IconButton(onClick = { isPlaying = !isPlaying }, modifier = Modifier.size(40.dp)) { Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, tint = iconColor, modifier = Modifier.size(32.dp)) }
+                        IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipNext, null, tint = iconColor) }
+                    }
                 }
             }
         }

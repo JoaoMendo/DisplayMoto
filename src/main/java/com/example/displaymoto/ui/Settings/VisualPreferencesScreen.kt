@@ -19,6 +19,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
 import com.example.displaymoto.AppStrings
 import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
@@ -142,11 +143,11 @@ fun VisualPreferencesScreen(
                             titulo = s.contrastTitle, subtitulo = s.contrastDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.standard, color = if (currentContrast == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onContrastChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentContrast == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentContrast == "STANDARD") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onContrastChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.highContrast, color = if (currentContrast == "HIGH CONTRAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onContrastChange("HIGH CONTRAST") })
+                                    Text(text = s.highContrast, color = if (currentContrast == "HIGH CONTRAST") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentContrast == "HIGH CONTRAST") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onContrastChange("HIGH CONTRAST") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.nightMode, color = if (currentContrast == "NIGHT MODE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onContrastChange("NIGHT MODE") })
+                                    Text(text = s.nightMode, color = if (currentContrast == "NIGHT MODE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentContrast == "NIGHT MODE") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onContrastChange("NIGHT MODE") })
                                 }
                             }
                         )
@@ -174,13 +175,13 @@ fun VisualPreferencesScreen(
                             conteudo = {
                                 Box(modifier = Modifier.fillMaxWidth(0.6f), contentAlignment = Alignment.CenterEnd) {
                                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(filtersScrollState)) {
-                                        Text(text = s.off, color = if (currentColorFilter == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onColorFilterChange("OFF") })
+                                        Text(text = s.off, color = if (currentColorFilter == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentColorFilter == "OFF") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onColorFilterChange("OFF") })
                                         Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                        Text(text = s.grayScale, color = if (currentColorFilter == "GRAY SCALE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onColorFilterChange("GRAY SCALE") })
+                                        Text(text = s.grayScale, color = if (currentColorFilter == "GRAY SCALE") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentColorFilter == "GRAY SCALE") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onColorFilterChange("GRAY SCALE") })
                                         Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                        Text(text = "DEUTERANOPIA", color = if (currentColorFilter == "DEUTERANOPIA") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onColorFilterChange("DEUTERANOPIA") })
+                                        Text(text = "DEUTERANOPIA", color = if (currentColorFilter == "DEUTERANOPIA") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentColorFilter == "DEUTERANOPIA") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onColorFilterChange("DEUTERANOPIA") })
                                         Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                        Text(text = "PROTANOPIA", color = if (currentColorFilter == "PROTANOPIA") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onColorFilterChange("PROTANOPIA") })
+                                        Text(text = "PROTANOPIA", color = if (currentColorFilter == "PROTANOPIA") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentColorFilter == "PROTANOPIA") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onColorFilterChange("PROTANOPIA") })
                                     }
                                 }
                             }
@@ -191,9 +192,9 @@ fun VisualPreferencesScreen(
                             titulo = s.textSpacingTitle, subtitulo = s.textSpacingDesc, primaryColor = primaryText, secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.standard, color = if (currentTextSpacing == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTextSpacingChange("STANDARD") })
+                                    Text(text = s.standard, color = if (currentTextSpacing == "STANDARD") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentTextSpacing == "STANDARD") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onTextSpacingChange("STANDARD") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.expanded, color = if (currentTextSpacing == "EXPANDED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onTextSpacingChange("EXPANDED") })
+                                    Text(text = s.expanded, color = if (currentTextSpacing == "EXPANDED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentTextSpacing == "EXPANDED") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onTextSpacingChange("EXPANDED") })
                                 }
                             }
                         )
@@ -207,11 +208,11 @@ fun VisualPreferencesScreen(
                             secondaryColor = secondaryText,
                             conteudo = {
                                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(text = s.on, color = if (currentAnimations == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onAnimationsChange("ON") })
+                                    Text(text = s.on, color = if (currentAnimations == "ON") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentAnimations == "ON") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onAnimationsChange("ON") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.reduced, color = if (currentAnimations == "REDUCED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onAnimationsChange("REDUCED") })
+                                    Text(text = s.reduced, color = if (currentAnimations == "REDUCED") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentAnimations == "REDUCED") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onAnimationsChange("REDUCED") })
                                     Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
-                                    Text(text = s.off, color = if (currentAnimations == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, modifier = Modifier.clickable { onAnimationsChange("OFF") })
+                                    Text(text = s.off, color = if (currentAnimations == "OFF") accentColor else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (currentAnimations == "OFF") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onAnimationsChange("OFF") })
                                 }
                             }
                         )
