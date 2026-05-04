@@ -109,10 +109,19 @@ fun DashboardScreen(
     // NOVO: O Texto fica BOLD se for Alto Contraste!
     val contrastWeight = if (currentContrast == "HIGH CONTRAST") FontWeight.Bold else FontWeight.Normal
 
-    var luz1 by remember { mutableStateOf(false) }
-    var luz2 by remember { mutableStateOf(false) }
-    var luz3 by remember { mutableStateOf(false) }
-    var luz4 by remember { mutableStateOf(false) }
+    var luz1 by remember { mutableStateOf(false) }  // ABS
+    var luz2 by remember { mutableStateOf(false) }  // High Beam (Máximos)
+    var luz3 by remember { mutableStateOf(false) }  // Low Beam (Médios)
+    var luz4 by remember { mutableStateOf(false) }  // MIL (Avaria Motor)
+    var luz5 by remember { mutableStateOf(false) }  // Brake Warning (Falha Travões)
+    var luz6 by remember { mutableStateOf(false) }  // Battery HV Warning
+    var luz7 by remember { mutableStateOf(false) }  // Temperature Warning
+    var luz8 by remember { mutableStateOf(false) }  // Position Lights (Mínimos)
+    var luz9 by remember { mutableStateOf(false) }  // Estabilidade (ESP)
+    var luz10 by remember { mutableStateOf(false) } // Neblina
+    var luz11 by remember { mutableStateOf(false) } // Pneu Vazio
+    var luz12 by remember { mutableStateOf(false) } // Temp Motor
+    var luz13 by remember { mutableStateOf(false) } // V2X
     var piscaEsquerdo by remember { mutableStateOf(false) }
     var piscaDireito by remember { mutableStateOf(false) }
     var motoLigada by remember { mutableStateOf(false) }
@@ -160,7 +169,10 @@ fun DashboardScreen(
         Column(modifier = Modifier.fillMaxSize().background(corFundoAtual)) {
             if (isSimplifiedMode) {
                 // === MODO SIMPLIFICADO: Layout ultra-limpo ===
-                TopBarSection(luz1, luz2, luz3, luz4, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.12f).padding(horizontal = 32.dp))
+                TopBarSection(
+                    luz1, luz2, luz3, luz4, luz5, luz6, luz7, luz8, luz9, luz10, luz11, luz12, luz13,
+                    motoLigada, marchaAtual, aCarregar, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
+                )
                 SimplifiedContentSection(
                     velocidadeAnimada = velocidadeAnimadaState.value,
                     marcha = marchaAtual,
@@ -177,6 +189,11 @@ fun DashboardScreen(
                     onVelocidadeTargetChange = { velocidadeTarget = it },
                     onToggleLuz1 = { luz1 = !luz1 }, onToggleLuz2 = { luz2 = !luz2 },
                     onToggleLuz3 = { luz3 = !luz3 }, onToggleLuz4 = { luz4 = !luz4 },
+                    onToggleLuz5 = { luz5 = !luz5 }, onToggleLuz6 = { luz6 = !luz6 },
+                    onToggleLuz7 = { luz7 = !luz7 }, onToggleLuz8 = { luz8 = !luz8 },
+                    onToggleLuz9 = { luz9 = !luz9 }, onToggleLuz10 = { luz10 = !luz10 },
+                    onToggleLuz11 = { luz11 = !luz11 }, onToggleLuz12 = { luz12 = !luz12 },
+                    onToggleLuz13 = { luz13 = !luz13 },
                     onTogglePiscaEsq = { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false },
                     onTogglePiscaDir = { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false },
                     onToggleCarga = { aCarregar = !aCarregar },
@@ -185,8 +202,11 @@ fun DashboardScreen(
                 BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f), isSimplified = true)
             } else {
                 // === MODO NORMAL: Layout completo ===
-                TopBarSection(luz1, luz2, luz3, luz4, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.12f).padding(horizontal = 32.dp))
-                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.63f).padding(horizontal = 32.dp))
+                TopBarSection(
+                    luz1, luz2, luz3, luz4, luz5, luz6, luz7, luz8, luz9, luz10, luz11, luz12, luz13,
+                    motoLigada, marchaAtual, aCarregar, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
+                )
+                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { luz5 = !luz5 }, { luz6 = !luz6 }, { luz7 = !luz7 }, { luz8 = !luz8 }, { luz9 = !luz9 }, { luz10 = !luz10 }, { luz11 = !luz11 }, { luz12 = !luz12 }, { luz13 = !luz13 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
                 InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
                 BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
             }
@@ -207,8 +227,16 @@ fun DashboardScreen(
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
-private fun TopBarSection(luz1: Boolean, luz2: Boolean, luz3: Boolean, luz4: Boolean, piscaEsqLigado: Boolean, piscaDirLigado: Boolean, primaryText: Color, contrastWeight: FontWeight, modifier: Modifier = Modifier) {
+private fun TopBarSection(
+    absAtivo: Boolean, highBeamAtivo: Boolean, lowBeamAtivo: Boolean, milAtivo: Boolean,
+    brakeAtivo: Boolean, batteryHvAtivo: Boolean, tempAtivo: Boolean, minimosAtivo: Boolean,
+    estabilidadeAtivo: Boolean, neblinaAtivo: Boolean, pneuVazioAtivo: Boolean, tempMotorAtivo: Boolean, v2xAtivo: Boolean,
+    motoLigada: Boolean, marchaAtual: String, aCarregar: Boolean,
+    piscaEsqLigado: Boolean, piscaDirLigado: Boolean,
+    primaryText: Color, contrastWeight: FontWeight, modifier: Modifier = Modifier
+) {
     var currentTime by remember { mutableStateOf("--:--") }
     var currentTemp by remember { mutableStateOf("--ºC") }
     var piscaPulso by remember { mutableStateOf(false) }
@@ -223,6 +251,17 @@ private fun TopBarSection(luz1: Boolean, luz2: Boolean, luz3: Boolean, luz4: Boo
         withContext(Dispatchers.IO) { try { currentTemp = "${JSONObject(URL("https://api.open-meteo.com/v1/forecast?latitude=41.3006&longitude=-7.7441&current_weather=true").readText()).getJSONObject("current_weather").getInt("temperature")}ºC" } catch (_: Exception) {} }
     }
 
+    // Indicadores automáticos derivados do estado
+    val readyToDrive = motoLigada
+    val neutralAtivo = marchaAtual == "N"
+    val chargingAtivo = aCarregar
+
+    // Cores regulamentares fixas (ISO 2575 / UNECE R60)
+    val corVerde = Color(0xFF00E676)
+    val corAzul = Color(0xFF448AFF)
+    val corAmarelo = Color(0xFFFFD600)
+    val corVermelho = Color(0xFFFF1744)
+
     Box(modifier = modifier.fillMaxWidth().fillMaxHeight()) {
         Row(modifier = Modifier.align(Alignment.TopStart).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(text = "$currentTime PM  |  ☁ $currentTemp", color = primaryText, fontSize = 32.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
@@ -234,16 +273,44 @@ private fun TopBarSection(luz1: Boolean, luz2: Boolean, luz3: Boolean, luz4: Boo
                 Icon(painter = painterResource(id = R.drawable.ic_seta_dir), contentDescription = null, tint = Color.Unspecified, modifier = Modifier.size(80.dp).alpha(if (piscaDirLigado && piscaPulso) 1f else 0f))
             }
         }
-        Row(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp), horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            listOf(R.drawable.ic_luz_verde to luz1, R.drawable.ic_luz_cinza to luz2, R.drawable.ic_abs to luz3, R.drawable.ic_motor to luz4).forEach { (id, ativa) ->
-                Icon(painter = painterResource(id = id), contentDescription = null, tint = if (ativa) Color.Unspecified else Color.Transparent, modifier = Modifier.size(48.dp).alpha(if (ativa) 1f else 0f))
+        // === Indicadores regulamentares (canto superior direito) ===
+        // Layout de 3 linhas fixas para acomodar todos os 16 ícones.
+        Column(
+            modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp),
+            horizontalAlignment = Alignment.End,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Linha 1 (Luzes Gerais e Pronto a Conduzir)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(painter = painterResource(id = R.drawable.ic_ready_to_drive), contentDescription = "Ready", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (readyToDrive) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_neutral), contentDescription = "Neutral", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (neutralAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_position_lights), contentDescription = "Mínimos", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (minimosAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_low_beam), contentDescription = "Low Beam", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (lowBeamAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_high_beam), contentDescription = "High Beam", tint = corAzul, modifier = Modifier.size(56.0.dp).alpha(if (highBeamAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_neblina), contentDescription = "Neblina", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (neblinaAtivo) 1f else 0f))
+            }
+            // Linha 2 (Avisos de Condução e Motor)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(painter = painterResource(id = R.drawable.ic_brake_warning), contentDescription = "Brake", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (brakeAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_mil), contentDescription = "MIL", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (milAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_abs), contentDescription = "ABS", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (absAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_estabilidade), contentDescription = "ESP", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (estabilidadeAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_pneu_vazio), contentDescription = "Tire", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (pneuVazioAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_v2x), contentDescription = "V2X", tint = corAzul, modifier = Modifier.size(56.0.dp).alpha(if (v2xAtivo) 1f else 0f))
+            }
+            // Linha 3 (Bateria, Carregamento e Temperaturas)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Icon(painter = painterResource(id = R.drawable.ic_charging), contentDescription = "Charging", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (chargingAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_battery_warning), contentDescription = "Battery HV", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (batteryHvAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_temp_warning), contentDescription = "Temp Battery", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (tempAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_temp_motor), contentDescription = "Temp Motor", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (tempMotorAtivo) 1f else 0f))
             }
         }
     }
 }
 
 @Composable
-private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, modifier: Modifier = Modifier) {
+private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit, onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -261,6 +328,15 @@ private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnim
                 Key.Two, Key.NumPad2 -> { onToggleLuz2(); true }
                 Key.Three, Key.NumPad3 -> { onToggleLuz3(); true }
                 Key.Four, Key.NumPad4 -> { onToggleLuz4(); true }
+                Key.Five, Key.NumPad5 -> { onToggleLuz5(); true }
+                Key.Six, Key.NumPad6 -> { onToggleLuz6(); true }
+                Key.Seven, Key.NumPad7 -> { onToggleLuz7(); true }
+                Key.Eight, Key.NumPad8 -> { onToggleLuz8(); true }
+                Key.Nine, Key.NumPad9 -> { onToggleLuz9(); true }
+                Key.Zero, Key.NumPad0 -> { onToggleLuz10(); true }
+                Key.Q -> { onToggleLuz11(); true }
+                Key.E -> { onToggleLuz12(); true }
+                Key.R -> { onToggleLuz13(); true }
                 Key.DirectionLeft -> { onTogglePiscaEsq(); true }
                 Key.DirectionRight -> { onTogglePiscaDir(); true }
                 else -> false
@@ -345,6 +421,8 @@ private fun SimplifiedContentSection(
     onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit,
     onVelocidadeTargetChange: (Float) -> Unit,
     onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit,
+    onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit,
+    onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit,
     onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -366,6 +444,15 @@ private fun SimplifiedContentSection(
                     Key.Two, Key.NumPad2 -> { onToggleLuz2(); true }
                     Key.Three, Key.NumPad3 -> { onToggleLuz3(); true }
                     Key.Four, Key.NumPad4 -> { onToggleLuz4(); true }
+                    Key.Five, Key.NumPad5 -> { onToggleLuz5(); true }
+                    Key.Six, Key.NumPad6 -> { onToggleLuz6(); true }
+                    Key.Seven, Key.NumPad7 -> { onToggleLuz7(); true }
+                    Key.Eight, Key.NumPad8 -> { onToggleLuz8(); true }
+                    Key.Nine, Key.NumPad9 -> { onToggleLuz9(); true }
+                    Key.Zero, Key.NumPad0 -> { onToggleLuz10(); true }
+                    Key.Q -> { onToggleLuz11(); true }
+                    Key.E -> { onToggleLuz12(); true }
+                    Key.R -> { onToggleLuz13(); true }
                     Key.DirectionLeft -> { onTogglePiscaEsq(); true }
                     Key.DirectionRight -> { onTogglePiscaDir(); true }
                     else -> false
