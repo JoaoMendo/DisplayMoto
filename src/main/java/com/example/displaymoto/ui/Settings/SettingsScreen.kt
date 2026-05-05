@@ -106,8 +106,45 @@ fun SettingsScreen(
     var luz2 by remember { mutableStateOf(false) }
     var luz3 by remember { mutableStateOf(false) }
     var luz4 by remember { mutableStateOf(false) }
+    var luz5 by remember { mutableStateOf(false) }
+    var luz6 by remember { mutableStateOf(false) }
+    var luz7 by remember { mutableStateOf(false) }
+    var luz8 by remember { mutableStateOf(false) }
+    var luz9 by remember { mutableStateOf(false) }
+    var luz10 by remember { mutableStateOf(false) }
+    var luz11 by remember { mutableStateOf(false) }
+    var luz12 by remember { mutableStateOf(false) }
+    var luz13 by remember { mutableStateOf(false) }
     var currentTime by remember { mutableStateOf("--:--") }
     var currentTemp by remember { mutableStateOf("--ºC") }
+
+    // Popup system
+    var popupMensagem by remember { mutableStateOf("") }
+    var popupCor by remember { mutableStateOf(Color.White) }
+    var popupGrave by remember { mutableStateOf(false) }
+    var popupVisivel by remember { mutableStateOf(false) }
+
+    fun mostrarPopupSettings(msg: String, cor: Color, grave: Boolean) {
+        popupMensagem = msg; popupCor = cor; popupGrave = grave; popupVisivel = true
+        if (grave) { try { val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100); tg.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tg.release() }, 600) } catch (_: Exception) {} }
+    }
+
+    LaunchedEffect(popupVisivel) { if (popupVisivel) { delay(3000); popupVisivel = false } }
+
+    // Watchers
+    LaunchedEffect(luz1) { if (luz1) mostrarPopupSettings(s.indAbs, Color(0xFFFFD600), false) }
+    LaunchedEffect(luz2) { if (luz2) mostrarPopupSettings(s.indMaximos, Color(0xFF42A5F5), false) }
+    LaunchedEffect(luz3) { if (luz3) mostrarPopupSettings(s.indMedios, Color(0xFF00E676), false) }
+    LaunchedEffect(luz4) { if (luz4) mostrarPopupSettings(s.indMil, Color(0xFFFFD600), false) }
+    LaunchedEffect(luz5) { if (luz5) mostrarPopupSettings(s.indBrake, Color(0xFFE53935), true) }
+    LaunchedEffect(luz6) { if (luz6) mostrarPopupSettings(s.indBattery, Color(0xFFE53935), true) }
+    LaunchedEffect(luz7) { if (luz7) mostrarPopupSettings(s.indTempBat, Color(0xFFE53935), true) }
+    LaunchedEffect(luz8) { if (luz8) mostrarPopupSettings(s.indMinimos, Color(0xFF00E676), false) }
+    LaunchedEffect(luz9) { if (luz9) mostrarPopupSettings(s.indEsp, Color(0xFFFFD600), false) }
+    LaunchedEffect(luz10) { if (luz10) mostrarPopupSettings(s.indNeblina, Color(0xFFFFD600), false) }
+    LaunchedEffect(luz11) { if (luz11) mostrarPopupSettings(s.indPneu, Color(0xFFFFD600), false) }
+    LaunchedEffect(luz12) { if (luz12) mostrarPopupSettings(s.indTempMotor, Color(0xFFE53935), true) }
+    LaunchedEffect(luz13) { if (luz13) mostrarPopupSettings(s.indV2x, Color(0xFF42A5F5), false) }
 
     LaunchedEffect(piscaEsquerdo, piscaDireito) {
         if (piscaEsquerdo || piscaDireito) while (true) { piscaPulso = true; delay(400); piscaPulso = false; delay(400) }
@@ -129,17 +166,45 @@ fun SettingsScreen(
                     Key.DirectionLeft -> { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false; true }
                     Key.DirectionRight -> { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false; true }
                     Key.One, Key.NumPad1 -> { luz1 = !luz1; true }
-                    Key.Two, Key.NumPad2 -> { luz2 = !luz2; true }
-                    Key.Three, Key.NumPad3 -> { luz3 = !luz3; true }
+                    Key.Two, Key.NumPad2 -> { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false }; true }
+                    Key.Three, Key.NumPad3 -> { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false }; true }
                     Key.Four, Key.NumPad4 -> { luz4 = !luz4; true }
+                    Key.Five, Key.NumPad5 -> { luz5 = !luz5; true }
+                    Key.Six, Key.NumPad6 -> { luz6 = !luz6; true }
+                    Key.Seven, Key.NumPad7 -> { luz7 = !luz7; true }
+                    Key.Eight, Key.NumPad8 -> { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false }; true }
+                    Key.Nine, Key.NumPad9 -> { luz9 = !luz9; true }
+                    Key.Zero, Key.NumPad0 -> { luz10 = !luz10; true }
+                    Key.Q -> { luz11 = !luz11; true }
+                    Key.E -> { luz12 = !luz12; true }
+                    Key.R -> { luz13 = !luz13; true }
                     Key.Escape, Key.Backspace, Key.B -> { onNavigateBack(); true }
                     else -> false
                 }
             } else false
         }) {
-            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
+            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, l5 = luz5, l6 = luz6, l7 = luz7, l8 = luz8, l9 = luz9, l10 = luz10, l11 = luz11, l12 = luz12, l13 = luz13, textColor = primaryText, modifier = Modifier.weight(0.12f))
             SettingsContentSection(s = s, currentAppLanguage = currentAppLanguage, onAppLanguageChange = onAppLanguageChange, onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onCorElementosSelecionada = onCorElementosChange, onCorTextoSelecionada = onCorTextoChange, onCorTextoSecundarioSelecionada = onCorTextoSecundarioChange, onOpenLibrary = { showColorLibrary = true }, onOpenElemLibrary = { showElemColorLibrary = true }, onOpenTextLibrary = { showTextColorLibrary = true }, onOpenSecTextLibrary = { showSecTextColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, iconColor = iconColor, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
             BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = corDestaque, iconColor = iconColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
+        }
+
+        // === Popup de indicador ===
+        if (popupVisivel) {
+            if (popupGrave) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
+                    Column(modifier = Modifier.background(Color(0xFF1A0A0A), shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).border(4.dp, popupCor, shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).padding(horizontal = 64.dp, vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("⚠", fontSize = 56.sp)
+                        Text(text = s.warning, color = popupCor, fontSize = 48.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
+                        Text(text = popupMensagem, color = Color.White, fontSize = 36.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    Row(modifier = Modifier.padding(top = 16.dp).background(Color(0xFF1A1A2E), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).border(2.dp, popupCor, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).padding(horizontal = 32.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = popupMensagem, color = popupCor, fontSize = 28.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
 
         if (showColorLibrary) {
@@ -162,44 +227,54 @@ fun SettingsScreen(
 // ==================================================================================================
 
 @Composable
-fun TopBarSectionSettings(currentTime: String, currentTemp: String, pEsq: Boolean, pDir: Boolean, pPulso: Boolean, l1: Boolean, l2: Boolean, l3: Boolean, l4: Boolean, textColor: Color = Color.White, modifier: Modifier = Modifier) {
-    Box(modifier = modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = 32.dp)) {
+fun TopBarSectionSettings(
+    currentTime: String, currentTemp: String, pEsq: Boolean, pDir: Boolean, pPulso: Boolean,
+    l1: Boolean, l2: Boolean, l3: Boolean, l4: Boolean, l5: Boolean = false, l6: Boolean = false,
+    l7: Boolean = false, l8: Boolean = false, l9: Boolean = false, l10: Boolean = false,
+    l11: Boolean = false, l12: Boolean = false, l13: Boolean = false,
+    motoLigada: Boolean = false, marchaAtual: String = "P", aCarregar: Boolean = false,
+    textColor: Color = Color.White, modifier: Modifier = Modifier
+) {
+    val corVerde = Color(0xFF00E676); val corAzul = Color(0xFF448AFF)
+    val corAmarelo = Color(0xFFFFD600); val corVermelho = Color(0xFFFF1744)
+    val readyToDrive = motoLigada; val neutralAtivo = marchaAtual == "N"; val chargingAtivo = aCarregar
 
-        // HORAS E TEMPERATURA
-        // O TalkBack vai ler isto automaticamente como um bloco de texto.
+    Box(modifier = modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = 32.dp)) {
         Row(modifier = Modifier.align(Alignment.TopStart).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(text = "$currentTime PM  |  ☁ $currentTemp", color = textColor, fontSize = 32.sp, fontFamily = robotoFont, modifier = Modifier.semantics { contentDescription = "Current time $currentTime PM, Weather $currentTemp" })
         }
-
-        // PISCAS
         Box(modifier = Modifier.align(Alignment.TopCenter).width(440.dp).height(100.dp), contentAlignment = Alignment.Center) {
-            // A moldura é decorativa, por isso mantemos null
             Image(painter = painterResource(id = R.drawable.border_piscas), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds)
             Row(horizontalArrangement = Arrangement.spacedBy(50.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
-                // AQUI TEMOS ACESSIBILIDADE: Se o pisca estiver ativo, o TalkBack avisa! Se não estiver, o TalkBack ignora.
                 Icon(painter = painterResource(id = R.drawable.ic_seta_dir), contentDescription = if (pEsq && pPulso) "Left turn signal active" else null, tint = Color.Unspecified, modifier = Modifier.size(80.dp).rotate(180f).alpha(if (pEsq && pPulso) 1f else 0f))
                 Icon(painter = painterResource(id = R.drawable.ic_seta_dir), contentDescription = if (pDir && pPulso) "Right turn signal active" else null, tint = Color.Unspecified, modifier = Modifier.size(80.dp).alpha(if (pDir && pPulso) 1f else 0f))
             }
         }
-
-        // LUZES DE AVISO (Motor, ABS, etc)
-        Row(modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            // Mapeamos cada luz para a sua descrição de acessibilidade
-            val iconesAcessiveis = listOf(
-                Triple(R.drawable.ic_luz_verde, l1, "Green indicator light"),
-                Triple(R.drawable.ic_luz_cinza, l2, "Neutral gear light"),
-                Triple(R.drawable.ic_abs, l3, "A B S warning light"),
-                Triple(R.drawable.ic_motor, l4, "Engine warning light")
-            )
-
-            iconesAcessiveis.forEach { (id, active, descricao) ->
-                Icon(
-                    painter = painterResource(id = id),
-                    // Se estiver acesa, o TalkBack avisa o condutor. Se estiver apagada, fica invisível para o leitor.
-                    contentDescription = if (active) "$descricao is on" else null,
-                    tint = if (active) Color.Unspecified else Color.Transparent,
-                    modifier = Modifier.size(48.dp).alpha(if (active) 1f else 0f)
-                )
+        // === Indicadores regulamentares (2x6 grid, igual ao Dashboard) ===
+        Column(modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp), horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Box(modifier = Modifier.size(40.dp)) {
+                    Icon(painter = painterResource(id = R.drawable.ic_ready_to_drive), contentDescription = "Ready", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (readyToDrive && !chargingAtivo && !neutralAtivo) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_charging), contentDescription = "Charging", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (chargingAtivo) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_neutral), contentDescription = "Neutral", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (neutralAtivo && !chargingAtivo) 1f else 0f))
+                }
+                Icon(painter = painterResource(id = R.drawable.ic_battery_warning), contentDescription = "Battery", tint = corVermelho, modifier = Modifier.size(40.dp).alpha(if (l6) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_temp_warning), contentDescription = "Temp Bat", tint = corVermelho, modifier = Modifier.size(40.dp).alpha(if (l7) 1f else 0f))
+                Box(modifier = Modifier.size(40.dp)) {
+                    Icon(painter = painterResource(id = R.drawable.ic_position_lights), contentDescription = "Mínimos", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (l8) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_low_beam), contentDescription = "Low Beam", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (l3) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_high_beam), contentDescription = "High Beam", tint = corAzul, modifier = Modifier.fillMaxSize().alpha(if (l2) 1f else 0f))
+                }
+                Icon(painter = painterResource(id = R.drawable.ic_neblina), contentDescription = "Neblina", tint = corAmarelo, modifier = Modifier.size(40.dp).alpha(if (l10) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_temp_motor), contentDescription = "Temp Motor", tint = corVermelho, modifier = Modifier.size(40.dp).alpha(if (l12) 1f else 0f))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Icon(painter = painterResource(id = R.drawable.ic_brake_warning), contentDescription = "Brake", tint = corVermelho, modifier = Modifier.size(40.dp).alpha(if (l5) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_mil), contentDescription = "MIL", tint = corAmarelo, modifier = Modifier.size(40.dp).alpha(if (l4) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_abs), contentDescription = "ABS", tint = corAmarelo, modifier = Modifier.size(40.dp).alpha(if (l1) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_estabilidade), contentDescription = "ESP", tint = corAmarelo, modifier = Modifier.size(40.dp).alpha(if (l9) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_pneu_vazio), contentDescription = "Tire", tint = corAmarelo, modifier = Modifier.size(40.dp).alpha(if (l11) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_v2x), contentDescription = "V2X", tint = corAzul, modifier = Modifier.size(40.dp).alpha(if (l13) 1f else 0f))
             }
         }
     }

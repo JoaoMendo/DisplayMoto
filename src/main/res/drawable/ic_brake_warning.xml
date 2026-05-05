@@ -1,7 +1,18 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="208dp" android:height="163.53dp" android:viewportWidth="166.4" android:viewportHeight="130.82">
-  <path android:pathData="M83.76,65.85m-56.6,0a56.6,56.6 0,1 1,113.2 0a56.6,56.6 0,1 1,-113.2 0" android:strokeWidth="9.3566" android:fillColor="#00000000" android:strokeColor="#cf0000" android:strokeLineCap="square" />
-  <path android:pathData="m138.36,16.45c28.8,28.8 22.4,73.6 -1.6,100.8m-108,-101.6c-28,32.8 -24.8,71.2 1.6,100.8" android:strokeWidth="9.3731" android:fillColor="#00000000" android:strokeColor="#cf0000" android:strokeLineCap="square" />
-  <path android:pathData="m83.2,36v35.2" android:strokeWidth="12.285" android:fillColor="#00000000" android:strokeColor="#cf0000" android:strokeLineCap="round" />
-  <path android:pathData="M76,94.4a6.8,6.4 0,1 0,13.6 0a6.8,6.4 0,1 0,-13.6 0z" android:fillColor="#cf0000" />
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="200dp" android:height="200dp" android:viewportWidth="200" android:viewportHeight="200">
+  <!-- Original 166.4x130.82 viewport. Content center=(83.2,65.41). -->
+  <!-- Scale=1.2 (to fill better). pivot=(0,0): P'=1.2*P+T -->
+  <!-- Center (83.2,65.41)->(100,100): Tx=100-1.2*83.2=0.16, Ty=100-1.2*65.41=21.51 -->
+  <group
+      android:scaleX="1.2"
+      android:scaleY="1.2"
+      android:pivotX="0"
+      android:pivotY="0"
+      android:translateX="0.16"
+      android:translateY="21.51">
+    <path android:pathData="M83.76,65.85m-56.6,0a56.6,56.6 0,1 1,113.2 0a56.6,56.6 0,1 1,-113.2 0" android:strokeWidth="9.3566" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="square" />
+    <path android:pathData="m138.36,16.45c28.8,28.8 22.4,73.6 -1.6,100.8m-108,-101.6c-28,32.8 -24.8,71.2 1.6,100.8" android:strokeWidth="9.3731" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="square" />
+    <path android:pathData="m83.2,36v35.2" android:strokeWidth="12.285" android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeLineCap="round" />
+    <path android:pathData="M76,94.4a6.8,6.4 0,1 0,13.6 0a6.8,6.4 0,1 0,-13.6 0z" android:fillColor="#FF000000" />
+  </group>
 </vector>

@@ -1,6 +1,7 @@
 package com.example.displaymoto.ui.screens.dashboard.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
@@ -70,8 +71,25 @@ fun AudioHapticsScreen(
     var luz2 by remember { mutableStateOf(false) }
     var luz3 by remember { mutableStateOf(false) }
     var luz4 by remember { mutableStateOf(false) }
+    var luz5 by remember { mutableStateOf(false) }
+    var luz6 by remember { mutableStateOf(false) }
+    var luz7 by remember { mutableStateOf(false) }
+    var luz8 by remember { mutableStateOf(false) }
+    var luz9 by remember { mutableStateOf(false) }
+    var luz10 by remember { mutableStateOf(false) }
+    var luz11 by remember { mutableStateOf(false) }
+    var luz12 by remember { mutableStateOf(false) }
+    var luz13 by remember { mutableStateOf(false) }
     var currentTime by remember { mutableStateOf("--:--") }
     var currentTemp by remember { mutableStateOf("--ºC") }
+
+    var popupMensagem by remember { mutableStateOf("") }
+    var popupCor by remember { mutableStateOf(Color.White) }
+    var popupGrave by remember { mutableStateOf(false) }
+    var popupVisivel by remember { mutableStateOf(false) }
+    fun mostrarPopup(msg: String, cor: Color, grave: Boolean) { popupMensagem = msg; popupCor = cor; popupGrave = grave; popupVisivel = true; if (grave) { try { val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100); tg.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tg.release() }, 600) } catch (_: Exception) {} } }
+    LaunchedEffect(popupVisivel) { if (popupVisivel) { delay(3000); popupVisivel = false } }
+    LaunchedEffect(luz1) { if (luz1) mostrarPopup(s.indAbs, Color(0xFFFFD600), false) }; LaunchedEffect(luz2) { if (luz2) mostrarPopup(s.indMaximos, Color(0xFF42A5F5), false) }; LaunchedEffect(luz3) { if (luz3) mostrarPopup(s.indMedios, Color(0xFF00E676), false) }; LaunchedEffect(luz4) { if (luz4) mostrarPopup(s.indMil, Color(0xFFFFD600), false) }; LaunchedEffect(luz5) { if (luz5) mostrarPopup(s.indBrake, Color(0xFFE53935), true) }; LaunchedEffect(luz6) { if (luz6) mostrarPopup(s.indBattery, Color(0xFFE53935), true) }; LaunchedEffect(luz7) { if (luz7) mostrarPopup(s.indTempBat, Color(0xFFE53935), true) }; LaunchedEffect(luz8) { if (luz8) mostrarPopup(s.indMinimos, Color(0xFF00E676), false) }; LaunchedEffect(luz9) { if (luz9) mostrarPopup(s.indEsp, Color(0xFFFFD600), false) }; LaunchedEffect(luz10) { if (luz10) mostrarPopup(s.indNeblina, Color(0xFFFFD600), false) }; LaunchedEffect(luz11) { if (luz11) mostrarPopup(s.indPneu, Color(0xFFFFD600), false) }; LaunchedEffect(luz12) { if (luz12) mostrarPopup(s.indTempMotor, Color(0xFFE53935), true) }; LaunchedEffect(luz13) { if (luz13) mostrarPopup(s.indV2x, Color(0xFF42A5F5), false) }
 
     val animScale = LocalAnimationMultiplier.current
 
@@ -110,15 +128,24 @@ fun AudioHapticsScreen(
                     Key.DirectionLeft -> { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false; true }
                     Key.DirectionRight -> { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false; true }
                     Key.One, Key.NumPad1 -> { luz1 = !luz1; true }
-                    Key.Two, Key.NumPad2 -> { luz2 = !luz2; true }
-                    Key.Three, Key.NumPad3 -> { luz3 = !luz3; true }
+                    Key.Two, Key.NumPad2 -> { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false }; true }
+                    Key.Three, Key.NumPad3 -> { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false }; true }
                     Key.Four, Key.NumPad4 -> { luz4 = !luz4; true }
+                    Key.Five, Key.NumPad5 -> { luz5 = !luz5; true }
+                    Key.Six, Key.NumPad6 -> { luz6 = !luz6; true }
+                    Key.Seven, Key.NumPad7 -> { luz7 = !luz7; true }
+                    Key.Eight, Key.NumPad8 -> { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false }; true }
+                    Key.Nine, Key.NumPad9 -> { luz9 = !luz9; true }
+                    Key.Zero, Key.NumPad0 -> { luz10 = !luz10; true }
+                    Key.Q -> { luz11 = !luz11; true }
+                    Key.E -> { luz12 = !luz12; true }
+                    Key.R -> { luz13 = !luz13; true }
                     Key.Escape, Key.Backspace, Key.B -> { onNavigateBack(); true }
                     else -> false
                 }
             } else false
         }) {
-            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, textColor = primaryText, modifier = Modifier.weight(0.12f))
+            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, l5 = luz5, l6 = luz6, l7 = luz7, l8 = luz8, l9 = luz9, l10 = luz10, l11 = luz11, l12 = luz12, l13 = luz13, textColor = primaryText, modifier = Modifier.weight(0.12f))
 
             val scrollState = rememberScrollState()
 
@@ -175,6 +202,22 @@ fun AudioHapticsScreen(
             }
 
             BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = accentColor, iconColor = iconColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
+        }
+
+        if (popupVisivel) {
+            if (popupGrave) {
+                Box(modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)), contentAlignment = Alignment.Center) {
+                    Column(modifier = Modifier.background(Color(0xFF1A0A0A), shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).border(4.dp, popupCor, shape = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)).padding(horizontal = 64.dp, vertical = 32.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        Text("⚠", fontSize = 56.sp); Text(text = s.warning, color = popupCor, fontSize = 48.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold); Text(text = popupMensagem, color = Color.White, fontSize = 36.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
+                    }
+                }
+            } else {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+                    Row(modifier = Modifier.padding(top = 16.dp).background(Color(0xFF1A1A2E), shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).border(2.dp, popupCor, shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp)).padding(horizontal = 32.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Text(text = popupMensagem, color = popupCor, fontSize = 28.sp, fontFamily = agencyFbFont, fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
         }
     }
 }

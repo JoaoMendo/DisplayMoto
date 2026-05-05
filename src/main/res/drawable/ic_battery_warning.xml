@@ -1,9 +1,21 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="200dp" android:height="200dp" android:viewportWidth="200" android:viewportHeight="200">
-  <path android:pathData="M20.76,61.38h158.47v88.98h-158.47z" android:strokeWidth="10" android:fillColor="#00000000" android:strokeColor="#000" />
-  <path android:fillColor="#FF000000" android:pathData="M41.53,44.64h25.64v16.74h-25.64z" />
-  <path android:fillColor="#FF000000" android:pathData="M132.84,44.64h25.64v16.74h-25.64z" />
-  <path android:fillColor="#FF000000" android:pathData="m36.73,96.36h31.57" android:strokeWidth="8" android:strokeColor="#000" />
-  <path android:fillColor="#FF000000" android:pathData="m131.71,96.36h31.57" android:strokeWidth="8" android:strokeColor="#000" />
-  <path android:fillColor="#FF000000" android:pathData="m147.49,112.15v-31.57" android:strokeWidth="8" android:strokeColor="#000" />
+  <!-- Original content spans x=[20.76,179.23] y=[44.64,150.36] = 158.47 x 105.72 -->
+  <!-- Content center=(100, 97.5). Scale=1.2x to make it bigger. -->
+  <!-- pivot=(0,0), S=1.2: P'=1.2*P+T -->
+  <!-- Center (100,97.5) -> (100,100): Tx=100-1.2*100=-20, Ty=100-1.2*97.5=(-17) -->
+  <group
+      android:scaleX="1.2"
+      android:scaleY="1.2"
+      android:pivotX="0"
+      android:pivotY="0"
+      android:translateX="-20"
+      android:translateY="-17">
+    <path android:pathData="M20.76,61.38h158.47v88.98h-158.47z" android:strokeWidth="10" android:fillColor="#00000000" android:strokeColor="#FF000000" />
+    <path android:fillColor="#FF000000" android:pathData="M41.53,44.64h25.64v16.74h-25.64z" />
+    <path android:fillColor="#FF000000" android:pathData="M132.84,44.64h25.64v16.74h-25.64z" />
+    <path android:fillColor="#FF000000" android:pathData="m36.73,96.36h31.57" android:strokeWidth="8" android:strokeColor="#FF000000" />
+    <path android:fillColor="#FF000000" android:pathData="m131.71,96.36h31.57" android:strokeWidth="8" android:strokeColor="#FF000000" />
+    <path android:fillColor="#FF000000" android:pathData="m147.49,112.15v-31.57" android:strokeWidth="8" android:strokeColor="#FF000000" />
+  </group>
 </vector>

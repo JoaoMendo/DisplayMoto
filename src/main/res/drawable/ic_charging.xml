@@ -1,4 +1,15 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="200dp" android:height="200dp" android:viewportWidth="200" android:viewportHeight="200">
-  <path android:pathData="m15,87.5h91.25v-20s0,-8.28 5.86,-14.14 14.14,-5.86 14.14,-5.86h26.25v15h20s10,0 10,10 -10,10 -10,10h-20v35h20s10,0 10,10 -10,10 -10,10h-20v15h-26.25s-8.28,0 -14.14,-5.86 -5.86,-14.14 -5.86,-14.14v-20h-91.25z" android:fillColor="#fff" />
+  <!-- Original content spans x=[15,185] y=[47.5,152.5] = 170x105. Center=(100,100) -->
+  <!-- Scale 1.3x to fill viewport better. pivot=(0,0): P'=1.3P+T -->
+  <!-- Center (100,100)->(100,100): Tx=100-130=-30, Ty=100-130=-30 -->
+  <group
+      android:scaleX="1.3"
+      android:scaleY="1.3"
+      android:pivotX="0"
+      android:pivotY="0"
+      android:translateX="-30"
+      android:translateY="-30">
+    <path android:pathData="m15,87.5h91.25v-20s0,-8.28 5.86,-14.14 14.14,-5.86 14.14,-5.86h26.25v15h20s10,0 10,10 -10,10 -10,10h-20v35h20s10,0 10,10 -10,10 -10,10h-20v15h-26.25s-8.28,0 -14.14,-5.86 -5.86,-14.14 -5.86,-14.14v-20h-91.25z" android:fillColor="#FF000000" />
+  </group>
 </vector>

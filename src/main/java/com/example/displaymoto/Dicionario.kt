@@ -48,6 +48,12 @@ data class AppStrings(
     // === DASHBOARD ===
     val road3d: String, val warning: String, val lowBattery: String,
     val critRange1: String, val critRange2: String,
+    // === INDICADORES ===
+    val indReady: String, val indCharging: String, val indNeutral: String,
+    val indBattery: String, val indTempBat: String, val indMinimos: String,
+    val indMedios: String, val indMaximos: String, val indNeblina: String,
+    val indTempMotor: String, val indBrake: String, val indMil: String,
+    val indAbs: String, val indEsp: String, val indPneu: String, val indV2x: String,
     // === MISC ===
     val workInProgress: String
 )
@@ -96,6 +102,11 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "ERROR FEEDBACK", "Adjust the intensity of alerts when a system error happens", "HAPTIC BOOST", "MAXIMUM",
         "3D ROAD", "W A R N I N G", "LOW BATTERY (20%)",
         "Critical range. Please proceed to", "a charging station immediately.",
+        "MOTORCYCLE ON", "CHARGING", "NEUTRAL",
+        "HV BATTERY WARNING", "HIGH BATTERY TEMPERATURE", "POSITION LIGHTS ON",
+        "LOW BEAM ON", "HIGH BEAM ON", "FOG LIGHTS ON",
+        "HIGH ENGINE TEMPERATURE", "BRAKE FAILURE", "ENGINE MALFUNCTION",
+        "ABS FAILURE", "STABILITY CONTROL OFF", "LOW TIRE PRESSURE", "V2X ACTIVE",
         "Work in Progress..."
     )
     AppLanguage.PT -> AppStrings(
@@ -136,6 +147,11 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEEDBACK DE ERRO", "Ajustar a intensidade dos alertas em caso de erro", "VIBRAÇÃO FORTE", "MÁXIMO",
         "ESTRADA 3D", "A V I S O", "BATERIA FRACA (20%)",
         "Autonomia crítica. Por favor, dirija-se", "a um posto de carregamento imediatamente.",
+        "MOTO LIGADA", "A CARREGAR", "PONTO MORTO",
+        "AVISO BATERIA HV", "TEMPERATURA BATERIA ELEVADA", "MÍNIMOS LIGADOS",
+        "MÉDIOS LIGADOS", "MÁXIMOS LIGADOS", "FARÓIS DE NEVOEIRO",
+        "TEMPERATURA MOTOR ELEVADA", "FALHA NOS TRAVÕES", "AVARIA MOTOR",
+        "FALHA ABS", "ESTABILIDADE DESATIVADA", "PRESSÃO PNEU BAIXA", "V2X ATIVO",
         "Em desenvolvimento..."
     )
     AppLanguage.ES -> AppStrings(
@@ -176,6 +192,11 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEEDBACK DE ERROR", "Ajustar la intensidad de alertas en caso de error", "VIBRACIÓN FUERTE", "MÁXIMO",
         "CARRETERA 3D", "A V I S O", "BATERÍA BAJA (20%)",
         "Autonomía crítica. Por favor, diríjase", "a una estación de carga inmediatamente.",
+        "MOTO ENCENDIDA", "CARGANDO", "PUNTO MUERTO",
+        "AVISO BATERÍA HV", "TEMPERATURA BATERÍA ELEVADA", "LUCES DE POSICIÓN",
+        "LUCES CORTAS", "LUCES LARGAS", "LUCES ANTINIEBLA",
+        "TEMPERATURA MOTOR ELEVADA", "FALLO DE FRENOS", "AVERÍA MOTOR",
+        "FALLO ABS", "ESTABILIDAD DESACTIVADA", "PRESIÓN NEUMÁTICO BAJA", "V2X ACTIVO",
         "En desarrollo..."
     )
     AppLanguage.FR -> AppStrings(
@@ -216,6 +237,11 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "RETOUR D'ERREUR", "Ajuster l'intensité des alertes en cas d'erreur", "VIBRATION FORTE", "MAXIMUM",
         "ROUTE 3D", "A T T E N T I O N", "BATTERIE FAIBLE (20%)",
         "Autonomie critique. Veuillez vous diriger", "vers une station de recharge immédiatement.",
+        "MOTO ALLUMÉE", "EN CHARGE", "POINT MORT",
+        "ALERTE BATTERIE HV", "TEMPÉRATURE BATTERIE ÉLEVÉE", "FEUX DE POSITION",
+        "FEUX DE CROISEMENT", "FEUX DE ROUTE", "FEUX DE BROUILLARD",
+        "TEMPÉRATURE MOTEUR ÉLEVÉE", "DÉFAILLANCE DES FREINS", "PANNE MOTEUR",
+        "DÉFAILLANCE ABS", "STABILITÉ DÉSACTIVÉE", "PRESSION PNEU BASSE", "V2X ACTIF",
         "En cours de développement..."
     )
     AppLanguage.DE -> AppStrings(
@@ -256,6 +282,11 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEHLER-FEEDBACK", "Intensität der Warnungen bei Systemfehlern anpassen", "STARKE VIBRATION", "MAXIMUM",
         "3D-STRASSE", "W A R N U N G", "BATTERIE SCHWACH (20%)",
         "Kritische Reichweite. Bitte fahren Sie", "sofort zu einer Ladestation.",
+        "MOTORRAD EIN", "WIRD GELADEN", "LEERLAUF",
+        "HV-BATTERIE WARNUNG", "HOHE BATTERIETEMPERATUR", "STANDLICHT EIN",
+        "ABBLENDLICHT EIN", "FERNLICHT EIN", "NEBELSCHEINWERFER EIN",
+        "HOHE MOTORTEMPERATUR", "BREMSVERSAGEN", "MOTORSTÖRUNG",
+        "ABS-AUSFALL", "STABILITÄT DEAKTIVIERT", "REIFENDRUCK NIEDRIG", "V2X AKTIV",
         "In Entwicklung..."
     )
     AppLanguage.IT -> AppStrings(
@@ -296,6 +327,11 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEEDBACK ERRORE", "Regolare l'intensità degli avvisi in caso di errore", "VIBRAZIONE FORTE", "MASSIMO",
         "STRADA 3D", "A T T E N Z I O N E", "BATTERIA SCARICA (20%)",
         "Autonomia critica. Per favore, dirigiti", "verso una stazione di ricarica immediatamente.",
+        "MOTO ACCESA", "IN CARICA", "FOLLE",
+        "ALLARME BATTERIA HV", "TEMPERATURA BATTERIA ELEVATA", "LUCI DI POSIZIONE",
+        "ANABBAGLIANTI", "ABBAGLIANTI", "FENDINEBBIA",
+        "TEMPERATURA MOTORE ELEVATA", "GUASTO FRENI", "GUASTO MOTORE",
+        "GUASTO ABS", "STABILITÀ DISATTIVATA", "PRESSIONE PNEUMATICO BASSA", "V2X ATTIVO",
         "In fase di sviluppo..."
     )
 }

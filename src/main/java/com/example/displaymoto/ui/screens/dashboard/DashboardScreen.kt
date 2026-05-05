@@ -2,7 +2,14 @@
 package com.example.displaymoto.ui.screens.dashboard
 
 import android.content.Intent
+import android.media.AudioManager
+import android.media.ToneGenerator
 import android.provider.Settings
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -13,6 +20,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -61,6 +69,49 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
+
+// Dados de cada indicador para o popup
+private data class IndicadorInfo(val chave: String, val cor: Color, val grave: Boolean)
+
+private val indicadorInfoMap = mapOf(
+    "ready" to IndicadorInfo("ready", Color(0xFF00E676), false),
+    "charging" to IndicadorInfo("charging", Color(0xFF00E676), false),
+    "neutral" to IndicadorInfo("neutral", Color(0xFF00E676), false),
+    "battery" to IndicadorInfo("battery", Color(0xFFE53935), true),
+    "tempBat" to IndicadorInfo("tempBat", Color(0xFFE53935), true),
+    "minimos" to IndicadorInfo("minimos", Color(0xFF00E676), false),
+    "medios" to IndicadorInfo("medios", Color(0xFF00E676), false),
+    "maximos" to IndicadorInfo("maximos", Color(0xFF42A5F5), false),
+    "neblina" to IndicadorInfo("neblina", Color(0xFFFFD600), false),
+    "tempMotor" to IndicadorInfo("tempMotor", Color(0xFFE53935), true),
+    "brake" to IndicadorInfo("brake", Color(0xFFE53935), true),
+    "mil" to IndicadorInfo("mil", Color(0xFFFFD600), false),
+    "abs" to IndicadorInfo("abs", Color(0xFFFFD600), false),
+    "esp" to IndicadorInfo("esp", Color(0xFFFFD600), false),
+    "pneu" to IndicadorInfo("pneu", Color(0xFFFFD600), false),
+    "v2x" to IndicadorInfo("v2x", Color(0xFF42A5F5), false)
+)
+
+// Resolver chave para string localizada
+private fun resolverMensagem(s: AppStrings, chave: String): String = when (chave) {
+    "ready" -> s.indReady
+    "charging" -> s.indCharging
+    "neutral" -> s.indNeutral
+    "battery" -> s.indBattery
+    "tempBat" -> s.indTempBat
+    "minimos" -> s.indMinimos
+    "medios" -> s.indMedios
+    "maximos" -> s.indMaximos
+    "neblina" -> s.indNeblina
+    "tempMotor" -> s.indTempMotor
+    "brake" -> s.indBrake
+    "mil" -> s.indMil
+    "abs" -> s.indAbs
+    "esp" -> s.indEsp
+    "pneu" -> s.indPneu
+    "v2x" -> s.indV2x
+    else -> chave
+}
 
 @Composable
 fun DashboardScreen(
@@ -128,6 +179,51 @@ fun DashboardScreen(
     var velocidadeTarget by remember { mutableFloatStateOf(0f) }
     var modeIdx by remember { mutableIntStateOf(1) }
 
+    // === Sistema de popup para indicadores ===
+    var popupAtivo by remember { mutableStateOf<IndicadorInfo?>(null) }
+    var popupVisivel by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // Função para mostrar popup e tocar som se grave
+    fun mostrarPopup(chave: String) {
+        val info = indicadorInfoMap[chave] ?: return
+        popupAtivo = info
+        popupVisivel = true
+        if (info.grave) {
+            try {
+                val toneGen = ToneGenerator(AudioManager.STREAM_ALARM, 100)
+                toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500)
+                // Liberar após 600ms
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ toneGen.release() }, 600)
+            } catch (_: Exception) { }
+        }
+    }
+
+    // Auto-dismiss popup após 3 segundos
+    LaunchedEffect(popupVisivel) {
+        if (popupVisivel) {
+            delay(3000)
+            popupVisivel = false
+        }
+    }
+
+    // Watchers para cada indicador
+    LaunchedEffect(motoLigada) { if (motoLigada) mostrarPopup("ready") }
+    LaunchedEffect(luz6) { if (luz6) mostrarPopup("battery") }
+    LaunchedEffect(luz7) { if (luz7) mostrarPopup("tempBat") }
+    LaunchedEffect(luz8) { if (luz8) mostrarPopup("minimos") }
+    LaunchedEffect(luz3) { if (luz3) mostrarPopup("medios") }
+    LaunchedEffect(luz2) { if (luz2) mostrarPopup("maximos") }
+    LaunchedEffect(luz10) { if (luz10) mostrarPopup("neblina") }
+    LaunchedEffect(luz12) { if (luz12) mostrarPopup("tempMotor") }
+    LaunchedEffect(luz5) { if (luz5) mostrarPopup("brake") }
+    LaunchedEffect(luz4) { if (luz4) mostrarPopup("mil") }
+    LaunchedEffect(luz1) { if (luz1) mostrarPopup("abs") }
+    LaunchedEffect(luz9) { if (luz9) mostrarPopup("esp") }
+    LaunchedEffect(luz11) { if (luz11) mostrarPopup("pneu") }
+    LaunchedEffect(luz13) { if (luz13) mostrarPopup("v2x") }
+    LaunchedEffect(marchaAtual) { if (marchaAtual == "N") mostrarPopup("neutral") }
+
     val velocidadeAnimadaState = animateFloatAsState(targetValue = if (motoLigada) velocidadeTarget else 0f, animationSpec = tween(1500, easing = FastOutSlowInEasing), label = "")
     val tempAnimadaState = animateFloatAsState(targetValue = if (motoLigada) 0.50f else 0f, animationSpec = tween(4000, easing = FastOutSlowInEasing), label = "")
 
@@ -135,6 +231,7 @@ fun DashboardScreen(
     var autonomia by remember { mutableFloatStateOf(autonomiaInicial) }
     var consumo by remember { mutableFloatStateOf(0f) }
     var aCarregar by remember { mutableStateOf(aCarregarInicial) }
+    LaunchedEffect(aCarregar) { if (aCarregar) mostrarPopup("charging") }
 
     LaunchedEffect(autonomia, aCarregar) { onBateriaChange(autonomia, aCarregar) }
 
@@ -187,10 +284,10 @@ fun DashboardScreen(
                     onMotoLigadaChange = { motoLigada = it },
                     onMarchaChange = onMarchaChange,
                     onVelocidadeTargetChange = { velocidadeTarget = it },
-                    onToggleLuz1 = { luz1 = !luz1 }, onToggleLuz2 = { luz2 = !luz2 },
-                    onToggleLuz3 = { luz3 = !luz3 }, onToggleLuz4 = { luz4 = !luz4 },
+                    onToggleLuz1 = { luz1 = !luz1 }, onToggleLuz2 = { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false } },
+                    onToggleLuz3 = { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false } }, onToggleLuz4 = { luz4 = !luz4 },
                     onToggleLuz5 = { luz5 = !luz5 }, onToggleLuz6 = { luz6 = !luz6 },
-                    onToggleLuz7 = { luz7 = !luz7 }, onToggleLuz8 = { luz8 = !luz8 },
+                    onToggleLuz7 = { luz7 = !luz7 }, onToggleLuz8 = { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false } },
                     onToggleLuz9 = { luz9 = !luz9 }, onToggleLuz10 = { luz10 = !luz10 },
                     onToggleLuz11 = { luz11 = !luz11 }, onToggleLuz12 = { luz12 = !luz12 },
                     onToggleLuz13 = { luz13 = !luz13 },
@@ -206,7 +303,7 @@ fun DashboardScreen(
                     luz1, luz2, luz3, luz4, luz5, luz6, luz7, luz8, luz9, luz10, luz11, luz12, luz13,
                     motoLigada, marchaAtual, aCarregar, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
                 )
-                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2 }, { luz3 = !luz3 }, { luz4 = !luz4 }, { luz5 = !luz5 }, { luz6 = !luz6 }, { luz7 = !luz7 }, { luz8 = !luz8 }, { luz9 = !luz9 }, { luz10 = !luz10 }, { luz11 = !luz11 }, { luz12 = !luz12 }, { luz13 = !luz13 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
+                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false } }, { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false } }, { luz4 = !luz4 }, { luz5 = !luz5 }, { luz6 = !luz6 }, { luz7 = !luz7 }, { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false } }, { luz9 = !luz9 }, { luz10 = !luz10 }, { luz11 = !luz11 }, { luz12 = !luz12 }, { luz13 = !luz13 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
                 InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
                 BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
             }
@@ -221,6 +318,70 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(s.critRange1, color = Color.LightGray, fontSize = 36.sp, fontFamily = agencyFb)
                     Text(s.critRange2, color = Color.LightGray, fontSize = 36.sp, fontFamily = agencyFb)
+                }
+            }
+        }
+
+        // === Popup de indicador ativado ===
+        if (popupVisivel && popupAtivo != null) {
+            popupAtivo?.let { info ->
+                val mensagemLocalizada = resolverMensagem(s, info.chave)
+                if (info.grave) {
+                    // === POPUP GRAVE: Overlay escuro + painel grande ===
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.7f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .background(Color(0xFF1A0A0A), shape = RoundedCornerShape(20.dp))
+                                .border(4.dp, info.cor, shape = RoundedCornerShape(20.dp))
+                                .padding(horizontal = 64.dp, vertical = 32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Text("⚠", fontSize = 56.sp)
+                            Text(
+                                text = s.warning,
+                                color = info.cor,
+                                fontSize = 48.sp,
+                                fontFamily = agencyFb,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = mensagemLocalizada,
+                                color = Color.White,
+                                fontSize = 36.sp,
+                                fontFamily = agencyFb,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                } else {
+                    // === POPUP NORMAL: Banner no topo ===
+                    AnimatedVisibility(
+                        visible = true,
+                        enter = slideInVertically(initialOffsetY = { -it }) + fadeIn(),
+                        exit = slideOutVertically(targetOffsetY = { -it }) + fadeOut(),
+                        modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .background(Color(0xFF1A1A2E), shape = RoundedCornerShape(16.dp))
+                                .border(2.dp, info.cor, shape = RoundedCornerShape(16.dp))
+                                .padding(horizontal = 32.dp, vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            Text(
+                                text = mensagemLocalizada,
+                                color = info.cor,
+                                fontSize = 28.sp,
+                                fontFamily = agencyFb,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -274,36 +435,39 @@ private fun TopBarSection(
             }
         }
         // === Indicadores regulamentares (canto superior direito) ===
-        // Layout de 3 linhas fixas para acomodar todos os 16 ícones.
+        // Layout de 2 linhas de 6 ícones (12 posições, 16 ícones com partilhas)
         Column(
             modifier = Modifier.align(Alignment.TopEnd).padding(top = 8.dp),
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Linha 1 (Luzes Gerais e Pronto a Conduzir)
+            // Linha 1 (Estado do Veículo, Temperaturas e Luzes)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(painter = painterResource(id = R.drawable.ic_ready_to_drive), contentDescription = "Ready", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (readyToDrive) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_neutral), contentDescription = "Neutral", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (neutralAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_position_lights), contentDescription = "Mínimos", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (minimosAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_low_beam), contentDescription = "Low Beam", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (lowBeamAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_high_beam), contentDescription = "High Beam", tint = corAzul, modifier = Modifier.size(56.0.dp).alpha(if (highBeamAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_neblina), contentDescription = "Neblina", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (neblinaAtivo) 1f else 0f))
+                // Ready, Charging e Neutral partilham a mesma posição (estados do veículo)
+                Box(modifier = Modifier.size(56.dp)) {
+                    Icon(painter = painterResource(id = R.drawable.ic_ready_to_drive), contentDescription = "Ready", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (readyToDrive && !chargingAtivo && !neutralAtivo) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_charging), contentDescription = "Charging", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (chargingAtivo) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_neutral), contentDescription = "Neutral", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (neutralAtivo && !chargingAtivo) 1f else 0f))
+                }
+                Icon(painter = painterResource(id = R.drawable.ic_battery_warning), contentDescription = "Battery HV", tint = corVermelho, modifier = Modifier.size(56.dp).alpha(if (batteryHvAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_temp_warning), contentDescription = "Temp Battery", tint = corVermelho, modifier = Modifier.size(56.dp).alpha(if (tempAtivo) 1f else 0f))
+                // Mínimos, Médios e Máximos partilham a mesma posição (mutuamente exclusivos)
+                Box(modifier = Modifier.size(56.dp)) {
+                    Icon(painter = painterResource(id = R.drawable.ic_position_lights), contentDescription = "Mínimos", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (minimosAtivo) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_low_beam), contentDescription = "Low Beam", tint = corVerde, modifier = Modifier.fillMaxSize().alpha(if (lowBeamAtivo) 1f else 0f))
+                    Icon(painter = painterResource(id = R.drawable.ic_high_beam), contentDescription = "High Beam", tint = corAzul, modifier = Modifier.fillMaxSize().alpha(if (highBeamAtivo) 1f else 0f))
+                }
+                Icon(painter = painterResource(id = R.drawable.ic_neblina), contentDescription = "Neblina", tint = corAmarelo, modifier = Modifier.size(56.dp).alpha(if (neblinaAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_temp_motor), contentDescription = "Temp Motor", tint = corVermelho, modifier = Modifier.size(56.dp).alpha(if (tempMotorAtivo) 1f else 0f))
             }
             // Linha 2 (Avisos de Condução e Motor)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(painter = painterResource(id = R.drawable.ic_brake_warning), contentDescription = "Brake", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (brakeAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_mil), contentDescription = "MIL", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (milAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_abs), contentDescription = "ABS", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (absAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_estabilidade), contentDescription = "ESP", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (estabilidadeAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_pneu_vazio), contentDescription = "Tire", tint = corAmarelo, modifier = Modifier.size(56.0.dp).alpha(if (pneuVazioAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_v2x), contentDescription = "V2X", tint = corAzul, modifier = Modifier.size(56.0.dp).alpha(if (v2xAtivo) 1f else 0f))
-            }
-            // Linha 3 (Bateria, Carregamento e Temperaturas)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Icon(painter = painterResource(id = R.drawable.ic_charging), contentDescription = "Charging", tint = corVerde, modifier = Modifier.size(56.0.dp).alpha(if (chargingAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_battery_warning), contentDescription = "Battery HV", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (batteryHvAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_temp_warning), contentDescription = "Temp Battery", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (tempAtivo) 1f else 0f))
-                Icon(painter = painterResource(id = R.drawable.ic_temp_motor), contentDescription = "Temp Motor", tint = corVermelho, modifier = Modifier.size(56.0.dp).alpha(if (tempMotorAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_brake_warning), contentDescription = "Brake", tint = corVermelho, modifier = Modifier.size(56.dp).alpha(if (brakeAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_mil), contentDescription = "MIL", tint = corAmarelo, modifier = Modifier.size(56.dp).alpha(if (milAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_abs), contentDescription = "ABS", tint = corAmarelo, modifier = Modifier.size(56.dp).alpha(if (absAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_estabilidade), contentDescription = "ESP", tint = corAmarelo, modifier = Modifier.size(56.dp).alpha(if (estabilidadeAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_pneu_vazio), contentDescription = "Tire", tint = corAmarelo, modifier = Modifier.size(56.dp).alpha(if (pneuVazioAtivo) 1f else 0f))
+                Icon(painter = painterResource(id = R.drawable.ic_v2x), contentDescription = "V2X", tint = corAzul, modifier = Modifier.size(56.dp).alpha(if (v2xAtivo) 1f else 0f))
             }
         }
     }

@@ -1,21 +1,22 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="48dp"
-    android:height="48dp"
-    android:viewportWidth="48"
-    android:viewportHeight="48">
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
   <!-- ISO 2575 / UNECE R60: Ready to Drive (Pronto a Conduzir) Tell-Tale -->
   <!-- Cor regulamentar: VERDE (#00E676) -->
   <!-- Símbolo: Veículo elétrico "READY" — seta dentro de círculo (power/ready) -->
+  <!-- Rescaled from 48x48 to 200x200 viewport (factor ~4.17x) -->
 
   <!-- Círculo exterior -->
   <path
-      android:pathData="M24,6 A18,18 0,1,1 24,42 A18,18 0,1,1 24,6z"
-      android:strokeColor="#00E676"
-      android:strokeWidth="2.5"
+      android:pathData="M100,25 A75,75 0,1,1 100,175 A75,75 0,1,1 100,25z"
+      android:strokeColor="#FF000000"
+      android:strokeWidth="10"
       android:fillColor="@android:color/transparent"/>
 
   <!-- Símbolo de relâmpago/energia (EV ready) -->
   <path
-      android:pathData="M27,12 L19,25 L23,25 L21,36 L29,23 L25,23 Z"
-      android:fillColor="#00E676"/>
+      android:pathData="M112.5,50 L79.17,104.17 L95.83,104.17 L87.5,150 L120.83,95.83 L104.17,95.83 Z"
+      android:fillColor="#FF000000"/>
 </vector>
