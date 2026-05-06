@@ -54,6 +54,8 @@ data class AppStrings(
     val indMedios: String, val indMaximos: String, val indNeblina: String,
     val indTempMotor: String, val indBrake: String, val indMil: String,
     val indAbs: String, val indEsp: String, val indPneu: String, val indV2x: String,
+    val indFullBattery: String, val indStopFirst: String,
+    val indStopToGear: String, val indTurnOnToGear: String,
     // === MISC ===
     val workInProgress: String
 )
@@ -107,6 +109,8 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "LOW BEAM ON", "HIGH BEAM ON", "FOG LIGHTS ON",
         "HIGH ENGINE TEMPERATURE", "BRAKE FAILURE", "ENGINE MALFUNCTION",
         "ABS FAILURE", "STABILITY CONTROL OFF", "LOW TIRE PRESSURE", "V2X ACTIVE",
+        "BATTERY ALREADY FULLY CHARGED", "TURN OFF MOTORCYCLE FIRST",
+        "STOP TO CHANGE GEAR", "TURN ON MOTORCYCLE FIRST",
         "Work in Progress..."
     )
     AppLanguage.PT -> AppStrings(
@@ -152,6 +156,8 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "MÉDIOS LIGADOS", "MÁXIMOS LIGADOS", "FARÓIS DE NEVOEIRO",
         "TEMPERATURA MOTOR ELEVADA", "FALHA NOS TRAVÕES", "AVARIA MOTOR",
         "FALHA ABS", "ESTABILIDADE DESATIVADA", "PRESSÃO PNEU BAIXA", "V2X ATIVO",
+        "BATERIA JÁ FOI CARREGADA", "DESLIGUE A MOTA PRIMEIRO",
+        "PARE PARA MUDAR DE MARCHA", "LIGUE A MOTA PRIMEIRO",
         "Em desenvolvimento..."
     )
     AppLanguage.ES -> AppStrings(
@@ -197,6 +203,8 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "LUCES CORTAS", "LUCES LARGAS", "LUCES ANTINIEBLA",
         "TEMPERATURA MOTOR ELEVADA", "FALLO DE FRENOS", "AVERÍA MOTOR",
         "FALLO ABS", "ESTABILIDAD DESACTIVADA", "PRESIÓN NEUMÁTICO BAJA", "V2X ACTIVO",
+        "BATERÍA YA CARGADA", "APAGUE LA MOTO PRIMERO",
+        "DETÉNGASE PARA CAMBIAR", "ENCIENDA LA MOTO PRIMERO",
         "En desarrollo..."
     )
     AppLanguage.FR -> AppStrings(
@@ -242,6 +250,8 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEUX DE CROISEMENT", "FEUX DE ROUTE", "FEUX DE BROUILLARD",
         "TEMPÉRATURE MOTEUR ÉLEVÉE", "DÉFAILLANCE DES FREINS", "PANNE MOTEUR",
         "DÉFAILLANCE ABS", "STABILITÉ DÉSACTIVÉE", "PRESSION PNEU BASSE", "V2X ACTIF",
+        "BATTERIE DÉJÀ CHARGÉE", "ÉTEIGNEZ D'ABORD LA MOTO",
+        "ARRÊTEZ POUR CHANGER", "ALLUMEZ D'ABORD LA MOTO",
         "En cours de développement..."
     )
     AppLanguage.DE -> AppStrings(
@@ -287,6 +297,8 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "ABBLENDLICHT EIN", "FERNLICHT EIN", "NEBELSCHEINWERFER EIN",
         "HOHE MOTORTEMPERATUR", "BREMSVERSAGEN", "MOTORSTÖRUNG",
         "ABS-AUSFALL", "STABILITÄT DEAKTIVIERT", "REIFENDRUCK NIEDRIG", "V2X AKTIV",
+        "BATTERIE BEREITS VOLL GELADEN", "MOTORRAD ZUERST AUSSCHALTEN",
+        "ZUM SCHALTEN ANHALTEN", "MOTORRAD ZUERST EINSCHALTEN",
         "In Entwicklung..."
     )
     AppLanguage.IT -> AppStrings(
@@ -332,6 +344,8 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "ANABBAGLIANTI", "ABBAGLIANTI", "FENDINEBBIA",
         "TEMPERATURA MOTORE ELEVATA", "GUASTO FRENI", "GUASTO MOTORE",
         "GUASTO ABS", "STABILITÀ DISATTIVATA", "PRESSIONE PNEUMATICO BASSA", "V2X ATTIVO",
+        "BATTERIA GIÀ CARICA", "SPEGNERE PRIMA LA MOTO",
+        "FERMARSI PER CAMBIARE", "ACCENDERE PRIMA LA MOTO",
         "In fase di sviluppo..."
     )
 }

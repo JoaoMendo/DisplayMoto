@@ -89,7 +89,10 @@ private val indicadorInfoMap = mapOf(
     "abs" to IndicadorInfo("abs", Color(0xFFFFD600), false),
     "esp" to IndicadorInfo("esp", Color(0xFFFFD600), false),
     "pneu" to IndicadorInfo("pneu", Color(0xFFFFD600), false),
-    "v2x" to IndicadorInfo("v2x", Color(0xFF42A5F5), false)
+    "v2x" to IndicadorInfo("v2x", Color(0xFF42A5F5), false),
+    "stop_first" to IndicadorInfo("stopFirst", Color(0xFFFFD600), false),
+    "stop_to_gear" to IndicadorInfo("stopToGear", Color(0xFFFFD600), false),
+    "turn_on_to_gear" to IndicadorInfo("turnOnToGear", Color(0xFFFFD600), false)
 )
 
 // Resolver chave para string localizada
@@ -110,6 +113,10 @@ private fun resolverMensagem(s: AppStrings, chave: String): String = when (chave
     "esp" -> s.indEsp
     "pneu" -> s.indPneu
     "v2x" -> s.indV2x
+    "fullBattery" -> s.indFullBattery
+    "stopFirst" -> s.indStopFirst
+    "stopToGear" -> s.indStopToGear
+    "turnOnToGear" -> s.indTurnOnToGear
     else -> chave
 }
 
@@ -121,6 +128,10 @@ fun DashboardScreen(
     tempBateriaAtual: Int = 30,
     tempMotorAtual: Int = 80,
     marchaAtual: String = "P",
+    motoLigadaInicial: Boolean = false,
+    velocidadeInicial: Float = 0f,
+    onMotoLigadaChange: (Boolean) -> Unit = {},
+    onVelocidadeChange: (Float) -> Unit = {},
     autonomiaKm: Int = 200,
     corFundoAtual: Color = Color(0xFF0D0F26),
     corPersonalizada: Color = Color(0xFF0D0F26),
@@ -175,8 +186,8 @@ fun DashboardScreen(
     var luz13 by remember { mutableStateOf(false) } // V2X
     var piscaEsquerdo by remember { mutableStateOf(false) }
     var piscaDireito by remember { mutableStateOf(false) }
-    var motoLigada by remember { mutableStateOf(false) }
-    var velocidadeTarget by remember { mutableFloatStateOf(0f) }
+    var motoLigada by remember { mutableStateOf(motoLigadaInicial) }
+    var velocidadeTarget by remember { mutableFloatStateOf(velocidadeInicial) }
     var modeIdx by remember { mutableIntStateOf(1) }
 
     // === Sistema de popup para indicadores ===
@@ -233,9 +244,22 @@ fun DashboardScreen(
     var aCarregar by remember { mutableStateOf(aCarregarInicial) }
     LaunchedEffect(aCarregar) { if (aCarregar) mostrarPopup("charging") }
 
+    val bateriaPercentagem = (autonomia / 200f) * 100f
+
+    val toggleCharging = {
+        if (!aCarregar) {
+            if (bateriaPercentagem < 100f) {
+                aCarregar = true
+            } else {
+                mostrarPopup("full_battery")
+            }
+        } else {
+            aCarregar = false
+        }
+    }
+
     LaunchedEffect(autonomia, aCarregar) { onBateriaChange(autonomia, aCarregar) }
 
-    val bateriaPercentagem = (autonomia / 200f) * 100f
     var avisoBateriaDispensado by remember { mutableStateOf(false) }
 
     LaunchedEffect(bateriaPercentagem) { if (bateriaPercentagem > 20f) avisoBateriaDispensado = false }
@@ -281,9 +305,9 @@ fun DashboardScreen(
                     secondaryText = secondaryText,
                     accentColor = uiElementColor,
                     contrastWeight = contrastWeight,
-                    onMotoLigadaChange = { motoLigada = it },
+                    onMotoLigadaChange = { motoLigada = it; onMotoLigadaChange(it) },
                     onMarchaChange = onMarchaChange,
-                    onVelocidadeTargetChange = { velocidadeTarget = it },
+                    onVelocidadeTargetChange = { velocidadeTarget = it; onVelocidadeChange(it) },
                     onToggleLuz1 = { luz1 = !luz1 }, onToggleLuz2 = { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false } },
                     onToggleLuz3 = { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false } }, onToggleLuz4 = { luz4 = !luz4 },
                     onToggleLuz5 = { luz5 = !luz5 }, onToggleLuz6 = { luz6 = !luz6 },
@@ -293,19 +317,57 @@ fun DashboardScreen(
                     onToggleLuz13 = { luz13 = !luz13 },
                     onTogglePiscaEsq = { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false },
                     onTogglePiscaDir = { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false },
-                    onToggleCarga = { aCarregar = !aCarregar },
+                    onToggleCarga = { toggleCharging() },
+                    mostrarPopup = { mostrarPopup(it) },
                     modifier = Modifier.weight(0.73f).padding(horizontal = 32.dp)
                 )
-                BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f), isSimplified = true)
+                val isRestricted = velocidadeAnimadaState.value > 0.1f || (motoLigada && marchaAtual != "P")
+                val runIfAllowed: (() -> Unit) -> Unit = { action ->
+                    if (isRestricted) {
+                        mostrarPopup("stop_first")
+                    } else {
+                        action()
+                    }
+                }
+                
+                val handleMenuAction = { icon: Int ->
+                    runIfAllowed {
+                        when (icon) {
+                            R.drawable.ic_settings -> onNavigateToSettings()
+                            R.drawable.ic_bluetooth -> try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) } catch (e: Exception) {}
+                        }
+                    }
+                }
+                
+                BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, handleMenuAction, Modifier.weight(0.15f), isSimplified = true, runIfAllowed = runIfAllowed, isRestricted = isRestricted)
             } else {
                 // === MODO NORMAL: Layout completo ===
                 TopBarSection(
                     luz1, luz2, luz3, luz4, luz5, luz6, luz7, luz8, luz9, luz10, luz11, luz12, luz13,
                     motoLigada, marchaAtual, aCarregar, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
                 )
-                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it }, onMarchaChange, { velocidadeTarget = it }, { luz1 = !luz1 }, { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false } }, { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false } }, { luz4 = !luz4 }, { luz5 = !luz5 }, { luz6 = !luz6 }, { luz7 = !luz7 }, { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false } }, { luz9 = !luz9 }, { luz10 = !luz10 }, { luz11 = !luz11 }, { luz12 = !luz12 }, { luz13 = !luz13 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { aCarregar = !aCarregar }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
+                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it; onMotoLigadaChange(it) }, onMarchaChange, { velocidadeTarget = it; onVelocidadeChange(it) }, { luz1 = !luz1 }, { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false } }, { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false } }, { luz4 = !luz4 }, { luz5 = !luz5 }, { luz6 = !luz6 }, { luz7 = !luz7 }, { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false } }, { luz9 = !luz9 }, { luz10 = !luz10 }, { luz11 = !luz11 }, { luz12 = !luz12 }, { luz13 = !luz13 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { toggleCharging() }, { mostrarPopup(it) }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
                 InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
-                BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, onNavigateToSettings, Modifier.weight(0.15f))
+                
+                val isRestricted = velocidadeAnimadaState.value > 0.1f || (motoLigada && marchaAtual != "P")
+                val runIfAllowed: (() -> Unit) -> Unit = { action ->
+                    if (isRestricted) {
+                        mostrarPopup("stop_first")
+                    } else {
+                        action()
+                    }
+                }
+                
+                val handleMenuAction = { icon: Int ->
+                    runIfAllowed {
+                        when (icon) {
+                            R.drawable.ic_settings -> onNavigateToSettings()
+                            R.drawable.ic_bluetooth -> try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) } catch (e: Exception) {}
+                        }
+                    }
+                }
+                
+                BottomBarSection(modeIdx, primaryText, secondaryText, uiElementColor, iconColor, contrastWeight, { modeIdx = it }, handleMenuAction, Modifier.weight(0.15f), isSimplified = false, runIfAllowed = runIfAllowed, isRestricted = isRestricted)
             }
         }
 
@@ -474,20 +536,29 @@ private fun TopBarSection(
 }
 
 @Composable
-private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit, onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, modifier: Modifier = Modifier) {
+private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit, onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, mostrarPopup: (String) -> Unit, modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
     Row(modifier = modifier.fillMaxWidth().focusRequester(focusRequester).focusable().onKeyEvent { event ->
         if (event.type == KeyEventType.KeyDown) {
+            val handleGearChange = { novaMarcha: String ->
+                if (!motoLigada) {
+                    mostrarPopup("turn_on_to_gear")
+                } else if (velocidadeAnimada > 0.1f) {
+                    mostrarPopup("stop_to_gear")
+                } else {
+                    onMarchaChange(novaMarcha)
+                }
+            }
             when (event.key) {
-                Key.Enter, Key.NumPadEnter -> { val proximoEstado = !motoLigada; onMotoLigadaChange(proximoEstado); if (proximoEstado) onMarchaChange("D") else { onMarchaChange("P"); onVelocidadeTargetChange(0f) }; true }
+                Key.Enter, Key.NumPadEnter -> { val proximoEstado = !motoLigada; onMotoLigadaChange(proximoEstado); if (!proximoEstado) { onMarchaChange("P"); onVelocidadeTargetChange(0f) }; true }
                 Key.C -> { if (velocidadeAnimada < 1f) onToggleCarga(); true }
-                Key.W -> { if (motoLigada && bateriaPercentagem > 0f && !aCarregar) onVelocidadeTargetChange(minOf(120f, velocidadeTarget + 5f)); true }
+                Key.W -> { if (motoLigada && bateriaPercentagem > 0f && !aCarregar && marcha == "D") onVelocidadeTargetChange(minOf(120f, velocidadeTarget + 5f)); true }
                 Key.S -> { if (motoLigada && !aCarregar) onVelocidadeTargetChange(maxOf(0f, velocidadeTarget - 8f)); true }
-                Key.D -> { if (motoLigada) onMarchaChange("D"); true }
-                Key.N -> { if (motoLigada) onMarchaChange("N"); true }
-                Key.P -> { if (motoLigada) onMarchaChange("P"); true }
+                Key.D -> { handleGearChange("D"); true }
+                Key.N -> { handleGearChange("N"); true }
+                Key.P -> { handleGearChange("P"); true }
                 Key.One, Key.NumPad1 -> { onToggleLuz1(); true }
                 Key.Two, Key.NumPad2 -> { onToggleLuz2(); true }
                 Key.Three, Key.NumPad3 -> { onToggleLuz3(); true }
@@ -588,6 +659,7 @@ private fun SimplifiedContentSection(
     onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit,
     onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit,
     onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit,
+    mostrarPopup: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -596,14 +668,23 @@ private fun SimplifiedContentSection(
     Box(
         modifier = modifier.fillMaxWidth().focusRequester(focusRequester).focusable().onKeyEvent { event ->
             if (event.type == KeyEventType.KeyDown) {
+                val handleGearChange = { novaMarcha: String ->
+                    if (!motoLigada) {
+                        mostrarPopup("turn_on_to_gear")
+                    } else if (velocidadeAnimada > 0.1f) {
+                        mostrarPopup("stop_to_gear")
+                    } else {
+                        onMarchaChange(novaMarcha)
+                    }
+                }
                 when (event.key) {
-                    Key.Enter, Key.NumPadEnter -> { val proximoEstado = !motoLigada; onMotoLigadaChange(proximoEstado); if (proximoEstado) onMarchaChange("D") else { onMarchaChange("P"); onVelocidadeTargetChange(0f) }; true }
+                    Key.Enter, Key.NumPadEnter -> { val proximoEstado = !motoLigada; onMotoLigadaChange(proximoEstado); if (!proximoEstado) { onMarchaChange("P"); onVelocidadeTargetChange(0f) }; true }
                     Key.C -> { if (velocidadeAnimada < 1f) onToggleCarga(); true }
-                    Key.W -> { if (motoLigada && bateriaPercentagem > 0f && !aCarregar) onVelocidadeTargetChange(minOf(120f, velocidadeTarget + 5f)); true }
+                    Key.W -> { if (motoLigada && bateriaPercentagem > 0f && !aCarregar && marcha == "D") onVelocidadeTargetChange(minOf(120f, velocidadeTarget + 5f)); true }
                     Key.S -> { if (motoLigada && !aCarregar) onVelocidadeTargetChange(maxOf(0f, velocidadeTarget - 8f)); true }
-                    Key.D -> { if (motoLigada) onMarchaChange("D"); true }
-                    Key.N -> { if (motoLigada) onMarchaChange("N"); true }
-                    Key.P -> { if (motoLigada) onMarchaChange("P"); true }
+                    Key.D -> { handleGearChange("D"); true }
+                    Key.N -> { handleGearChange("N"); true }
+                    Key.P -> { handleGearChange("P"); true }
                     Key.One, Key.NumPad1 -> { onToggleLuz1(); true }
                     Key.Two, Key.NumPad2 -> { onToggleLuz2(); true }
                     Key.Three, Key.NumPad3 -> { onToggleLuz3(); true }
@@ -670,7 +751,7 @@ private fun InfoBarSection(odometro: Float, autonomia: Float, consumo: Float, pr
 }
 
 @Composable
-private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Color, uiElementColor: Color, iconColor: Color, contrastWeight: FontWeight, onModeChange: (Int) -> Unit, onNavigateToSettings: () -> Unit = {}, modifier: Modifier = Modifier, isSimplified: Boolean = false) {
+private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Color, uiElementColor: Color, iconColor: Color, contrastWeight: FontWeight, onModeChange: (Int) -> Unit, onMenuAction: (Int) -> Unit = {}, modifier: Modifier = Modifier, isSimplified: Boolean = false, runIfAllowed: (() -> Unit) -> Unit = { it() }, isRestricted: Boolean = false) {
     val context = LocalContext.current
     val modes = listOf("Eco", "Standard", "Sport")
     var isPlaying by remember { mutableStateOf(true) }
@@ -678,45 +759,42 @@ private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Co
 
     LaunchedEffect(isPlaying) { while (isPlaying) { delay(1000); musicProgress += 0.005f; if (musicProgress > 1f) musicProgress = 0f } }
 
+    val contentAlpha = if (isRestricted) 0.35f else 1f
+
     Box(modifier = modifier.fillMaxWidth()) {
         // Leitor de música: escondido no modo simplificado
         if (!isSimplified) {
             Box(modifier = Modifier.align(Alignment.BottomStart).size(430.dp, 80.dp), contentAlignment = Alignment.CenterStart) {
                 Box(modifier = Modifier.matchParentSize().graphicsLayer { scaleX = -1f }.paint(painterResource(id = R.drawable.fundo_menu), contentScale = ContentScale.FillBounds))
                 Row(modifier = Modifier.fillMaxSize().padding(start = 32.dp, end = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Box(modifier = Modifier.size(56.dp).background(Color.DarkGray, CircleShape).clip(CircleShape), contentAlignment = Alignment.Center) {
+                    Box(modifier = Modifier.size(56.dp).background(Color.DarkGray, CircleShape).clip(CircleShape).alpha(contentAlpha), contentAlignment = Alignment.Center) {
                         Image(painter = painterResource(id = R.drawable.ic_musica_fundo), contentDescription = null, modifier = Modifier.fillMaxSize(), contentScale = ContentScale.Crop)
                     }
                     Spacer(modifier = Modifier.width(16.dp))
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.Center) {
+                    Column(modifier = Modifier.weight(1f).alpha(contentAlpha), verticalArrangement = Arrangement.Center) {
                         Text("In The End", color = primaryText, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Text("Linkin Park", color = secondaryText, fontSize = 14.sp, fontFamily = agencyFb, fontWeight = contrastWeight, maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(modifier = Modifier.height(6.dp))
                         LinearProgressIndicator(progress = { musicProgress }, modifier = Modifier.fillMaxWidth().height(2.dp), color = uiElementColor, trackColor = secondaryText.copy(alpha = 0.3f))
                     }
                     Spacer(modifier = Modifier.width(12.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically) {
-                        IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipPrevious, null, tint = iconColor) }
-                        IconButton(onClick = { isPlaying = !isPlaying }, modifier = Modifier.size(40.dp)) { Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, tint = iconColor, modifier = Modifier.size(32.dp)) }
-                        IconButton(onClick = { musicProgress = 0f }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipNext, null, tint = iconColor) }
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp), verticalAlignment = Alignment.CenterVertically, modifier = Modifier.alpha(contentAlpha)) {
+                        IconButton(onClick = { runIfAllowed { musicProgress = 0f } }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipPrevious, null, tint = iconColor) }
+                        IconButton(onClick = { runIfAllowed { isPlaying = !isPlaying } }, modifier = Modifier.size(40.dp)) { Icon(if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow, null, tint = iconColor, modifier = Modifier.size(32.dp)) }
+                        IconButton(onClick = { runIfAllowed { musicProgress = 0f } }, modifier = Modifier.size(32.dp)) { Icon(Icons.Filled.SkipNext, null, tint = iconColor) }
                     }
                 }
             }
         }
-        Row(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp), verticalAlignment = Alignment.CenterVertically) {
-            IconButton(onClick = { onModeChange(if (modeIdx - 1 < 0) modes.size - 1 else modeIdx - 1) }) { Icon(painterResource(id = R.drawable.ic_seta_esquerda), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
+        Row(modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 24.dp).alpha(contentAlpha), verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = { runIfAllowed { onModeChange(if (modeIdx - 1 < 0) modes.size - 1 else modeIdx - 1) } }) { Icon(painterResource(id = R.drawable.ic_seta_esquerda), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
             Text(modes[modeIdx], color = primaryText, fontSize = 32.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
-            IconButton(onClick = { onModeChange((modeIdx + 1) % modes.size) }) { Icon(painterResource(id = R.drawable.ic_seta_direita), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
+            IconButton(onClick = { runIfAllowed { onModeChange((modeIdx + 1) % modes.size) } }) { Icon(painterResource(id = R.drawable.ic_seta_direita), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
         }
         Box(modifier = Modifier.align(Alignment.BottomEnd).size(430.dp, 80.dp).paint(painterResource(id = R.drawable.fundo_menu), contentScale = ContentScale.FillBounds), contentAlignment = Alignment.Center) {
-            Row(modifier = Modifier.padding(start = 80.dp, end = 32.dp), horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(modifier = Modifier.padding(start = 80.dp, end = 32.dp).alpha(contentAlpha), horizontalArrangement = Arrangement.spacedBy(40.dp), verticalAlignment = Alignment.CenterVertically) {
                 listOf(R.drawable.ic_bluetooth, R.drawable.ic_settings, R.drawable.ic_phone, R.drawable.ic_nav).forEach { icon ->
-                    IconButton(onClick = {
-                        when (icon) {
-                            R.drawable.ic_settings -> onNavigateToSettings()
-                            R.drawable.ic_bluetooth -> try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) } catch (e: Exception) {}
-                        }
-                    }) { Icon(painterResource(id = icon), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
+                    IconButton(onClick = { onMenuAction(icon) }) { Icon(painterResource(id = icon), null, tint = iconColor, modifier = Modifier.size(36.dp)) }
                 }
             }
         }
