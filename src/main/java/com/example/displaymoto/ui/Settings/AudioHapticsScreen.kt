@@ -1,4 +1,4 @@
-package com.example.displaymoto.ui.screens.dashboard.settings
+﻿package com.example.displaymoto.ui.screens.dashboard.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -25,6 +25,7 @@ import com.example.displaymoto.LocalAnimationMultiplier
 import com.example.displaymoto.ui.screens.dashboard.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
@@ -40,7 +41,8 @@ fun AudioHapticsScreen(
     currentVisualAlerts: String, onVisualAlertsChange: (String) -> Unit,
     currentErrorFeedback: String, onErrorFeedbackChange: (String) -> Unit,
     onNavigateBack: () -> Unit,
-    aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null
+    aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null,
+    indicadores: com.example.displaymoto.IndicadoresState = remember { com.example.displaymoto.IndicadoresState() }
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
 
@@ -64,22 +66,7 @@ fun AudioHapticsScreen(
         else -> if (isLightBg) Color.Black else Color.White
     }
 
-    var piscaEsquerdo by remember { mutableStateOf(false) }
-    var piscaDireito by remember { mutableStateOf(false) }
     var piscaPulso by remember { mutableStateOf(false) }
-    var luz1 by remember { mutableStateOf(false) }
-    var luz2 by remember { mutableStateOf(false) }
-    var luz3 by remember { mutableStateOf(false) }
-    var luz4 by remember { mutableStateOf(false) }
-    var luz5 by remember { mutableStateOf(false) }
-    var luz6 by remember { mutableStateOf(false) }
-    var luz7 by remember { mutableStateOf(false) }
-    var luz8 by remember { mutableStateOf(false) }
-    var luz9 by remember { mutableStateOf(false) }
-    var luz10 by remember { mutableStateOf(false) }
-    var luz11 by remember { mutableStateOf(false) }
-    var luz12 by remember { mutableStateOf(false) }
-    var luz13 by remember { mutableStateOf(false) }
     var currentTime by remember { mutableStateOf("--:--") }
     var currentTemp by remember { mutableStateOf("--ºC") }
 
@@ -89,12 +76,12 @@ fun AudioHapticsScreen(
     var popupVisivel by remember { mutableStateOf(false) }
     fun mostrarPopup(msg: String, cor: Color, grave: Boolean) { popupMensagem = msg; popupCor = cor; popupGrave = grave; popupVisivel = true; if (grave) { try { val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100); tg.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tg.release() }, 600) } catch (_: Exception) {} } }
     LaunchedEffect(popupVisivel) { if (popupVisivel) { delay(3000); popupVisivel = false } }
-    LaunchedEffect(luz1) { if (luz1) mostrarPopup(s.indAbs, Color(0xFFFFD600), false) }; LaunchedEffect(luz2) { if (luz2) mostrarPopup(s.indMaximos, Color(0xFF42A5F5), false) }; LaunchedEffect(luz3) { if (luz3) mostrarPopup(s.indMedios, Color(0xFF00E676), false) }; LaunchedEffect(luz4) { if (luz4) mostrarPopup(s.indMil, Color(0xFFFFD600), false) }; LaunchedEffect(luz5) { if (luz5) mostrarPopup(s.indBrake, Color(0xFFE53935), true) }; LaunchedEffect(luz6) { if (luz6) mostrarPopup(s.indBattery, Color(0xFFE53935), true) }; LaunchedEffect(luz7) { if (luz7) mostrarPopup(s.indTempBat, Color(0xFFE53935), true) }; LaunchedEffect(luz8) { if (luz8) mostrarPopup(s.indMinimos, Color(0xFF00E676), false) }; LaunchedEffect(luz9) { if (luz9) mostrarPopup(s.indEsp, Color(0xFFFFD600), false) }; LaunchedEffect(luz10) { if (luz10) mostrarPopup(s.indNeblina, Color(0xFFFFD600), false) }; LaunchedEffect(luz11) { if (luz11) mostrarPopup(s.indPneu, Color(0xFFFFD600), false) }; LaunchedEffect(luz12) { if (luz12) mostrarPopup(s.indTempMotor, Color(0xFFE53935), true) }; LaunchedEffect(luz13) { if (luz13) mostrarPopup(s.indV2x, Color(0xFF42A5F5), false) }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopup(s.indAbs, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz2 }.drop(1).collect { if (it) mostrarPopup(s.indMaximos, Color(0xFF42A5F5), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz3 }.drop(1).collect { if (it) mostrarPopup(s.indMedios, Color(0xFF00E676), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopup(s.indMil, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz5 }.drop(1).collect { if (it) mostrarPopup(s.indBrake, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz6 }.drop(1).collect { if (it) mostrarPopup(s.indBattery, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz7 }.drop(1).collect { if (it) mostrarPopup(s.indTempBat, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz8 }.drop(1).collect { if (it) mostrarPopup(s.indMinimos, Color(0xFF00E676), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopup(s.indEsp, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopup(s.indNeblina, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopup(s.indPneu, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz12 }.drop(1).collect { if (it) mostrarPopup(s.indTempMotor, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz13 }.drop(1).collect { if (it) mostrarPopup(s.indV2x, Color(0xFF42A5F5), false) } }
 
     val animScale = LocalAnimationMultiplier.current
 
-    LaunchedEffect(piscaEsquerdo, piscaDireito, animScale) {
-        if (piscaEsquerdo || piscaDireito) {
+    LaunchedEffect(indicadores.piscaEsquerdo, indicadores.piscaDireito, animScale) {
+        if (indicadores.piscaEsquerdo || indicadores.piscaDireito) {
             while (true) {
                 piscaPulso = true
                 val delayTime = (400 * (if (animScale < 0.1f) 1000f else animScale)).toLong()
@@ -125,27 +112,27 @@ fun AudioHapticsScreen(
         Column(modifier = Modifier.fillMaxSize().focusRequester(focusRequester).focusable().onKeyEvent { event ->
             if (event.type == KeyEventType.KeyDown) {
                 when (event.key) {
-                    Key.DirectionLeft -> { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false; true }
-                    Key.DirectionRight -> { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false; true }
-                    Key.One, Key.NumPad1 -> { luz1 = !luz1; true }
-                    Key.Two, Key.NumPad2 -> { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false }; true }
-                    Key.Three, Key.NumPad3 -> { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false }; true }
-                    Key.Four, Key.NumPad4 -> { luz4 = !luz4; true }
-                    Key.Five, Key.NumPad5 -> { luz5 = !luz5; true }
-                    Key.Six, Key.NumPad6 -> { luz6 = !luz6; true }
-                    Key.Seven, Key.NumPad7 -> { luz7 = !luz7; true }
-                    Key.Eight, Key.NumPad8 -> { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false }; true }
-                    Key.Nine, Key.NumPad9 -> { luz9 = !luz9; true }
-                    Key.Zero, Key.NumPad0 -> { luz10 = !luz10; true }
-                    Key.Q -> { luz11 = !luz11; true }
-                    Key.E -> { luz12 = !luz12; true }
-                    Key.R -> { luz13 = !luz13; true }
+                    Key.DirectionLeft -> { indicadores.piscaEsquerdo = !indicadores.piscaEsquerdo; if (indicadores.piscaEsquerdo) indicadores.piscaDireito = false; true }
+                    Key.DirectionRight -> { indicadores.piscaDireito = !indicadores.piscaDireito; if (indicadores.piscaDireito) indicadores.piscaEsquerdo = false; true }
+                    Key.One, Key.NumPad1 -> { indicadores.luz1 = !indicadores.luz1; true }
+                    Key.Two, Key.NumPad2 -> { indicadores.luz2 = !indicadores.luz2; if (indicadores.luz2) { indicadores.luz3 = false; indicadores.luz8 = false }; true }
+                    Key.Three, Key.NumPad3 -> { indicadores.luz3 = !indicadores.luz3; if (indicadores.luz3) { indicadores.luz2 = false; indicadores.luz8 = false }; true }
+                    Key.Four, Key.NumPad4 -> { indicadores.luz4 = !indicadores.luz4; true }
+                    Key.Five, Key.NumPad5 -> { indicadores.luz5 = !indicadores.luz5; true }
+                    Key.Six, Key.NumPad6 -> { indicadores.luz6 = !indicadores.luz6; true }
+                    Key.Seven, Key.NumPad7 -> { indicadores.luz7 = !indicadores.luz7; true }
+                    Key.Eight, Key.NumPad8 -> { indicadores.luz8 = !indicadores.luz8; if (indicadores.luz8) { indicadores.luz2 = false; indicadores.luz3 = false }; true }
+                    Key.Nine, Key.NumPad9 -> { indicadores.luz9 = !indicadores.luz9; true }
+                    Key.Zero, Key.NumPad0 -> { indicadores.luz10 = !indicadores.luz10; true }
+                    Key.Q -> { indicadores.luz11 = !indicadores.luz11; true }
+                    Key.E -> { indicadores.luz12 = !indicadores.luz12; true }
+                    Key.R -> { indicadores.luz13 = !indicadores.luz13; true }
                     Key.Escape, Key.Backspace, Key.B -> { onNavigateBack(); true }
                     else -> false
                 }
             } else false
         }) {
-            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = piscaEsquerdo, pDir = piscaDireito, pPulso = piscaPulso, l1 = luz1, l2 = luz2, l3 = luz3, l4 = luz4, l5 = luz5, l6 = luz6, l7 = luz7, l8 = luz8, l9 = luz9, l10 = luz10, l11 = luz11, l12 = luz12, l13 = luz13, textColor = primaryText, modifier = Modifier.weight(0.12f))
+            TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = indicadores.piscaEsquerdo, pDir = indicadores.piscaDireito, pPulso = piscaPulso, l1 = indicadores.luz1, l2 = indicadores.luz2, l3 = indicadores.luz3, l4 = indicadores.luz4, l5 = indicadores.luz5, l6 = indicadores.luz6, l7 = indicadores.luz7, l8 = indicadores.luz8, l9 = indicadores.luz9, l10 = indicadores.luz10, l11 = indicadores.luz11, l12 = indicadores.luz12, l13 = indicadores.luz13, motoLigada = indicadores.motoLigada, marchaAtual = marchaAtual, aCarregar = aCarregarAtual, textColor = primaryText, modifier = Modifier.weight(0.12f))
 
             val scrollState = rememberScrollState()
 

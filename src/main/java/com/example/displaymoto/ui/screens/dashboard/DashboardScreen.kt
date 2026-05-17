@@ -17,6 +17,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -61,12 +62,20 @@ import androidx.compose.ui.unit.sp
 import com.example.displaymoto.R
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import java.net.URL
 import com.example.displaymoto.AppStrings
 import java.text.SimpleDateFormat
 import java.util.*
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.graphics.Brush
+import org.osmdroid.config.Configuration
+import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import android.graphics.ColorMatrixColorFilter
 
 val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
 
@@ -139,12 +148,14 @@ fun DashboardScreen(
     autonomiaInicial: Float = 200f,
     aCarregarInicial: Boolean = false,
     onBateriaChange: (Float, Boolean) -> Unit = { _, _ -> },
-    onNavigateToSettings: () -> Unit,
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToNavigation: () -> Unit = {},
     aiCorDestaque: Color? = null,
     aiPrimaryText: Color? = null,
     aiSecondaryText: Color? = null,
     onMarchaChange: (String) -> Unit = {},
-    isSimplifiedMode: Boolean = false
+    isSimplifiedMode: Boolean = false,
+    indicadores: com.example.displaymoto.IndicadoresState = remember { com.example.displaymoto.IndicadoresState() }
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
 
@@ -171,28 +182,17 @@ fun DashboardScreen(
     // NOVO: O Texto fica BOLD se for Alto Contraste!
     val contrastWeight = if (currentContrast == "HIGH CONTRAST") FontWeight.Bold else FontWeight.Normal
 
-    var luz1 by remember { mutableStateOf(false) }  // ABS
-    var luz2 by remember { mutableStateOf(false) }  // High Beam (Máximos)
-    var luz3 by remember { mutableStateOf(false) }  // Low Beam (Médios)
-    var luz4 by remember { mutableStateOf(false) }  // MIL (Avaria Motor)
-    var luz5 by remember { mutableStateOf(false) }  // Brake Warning (Falha Travões)
-    var luz6 by remember { mutableStateOf(false) }  // Battery HV Warning
-    var luz7 by remember { mutableStateOf(false) }  // Temperature Warning
-    var luz8 by remember { mutableStateOf(false) }  // Position Lights (Mínimos)
-    var luz9 by remember { mutableStateOf(false) }  // Estabilidade (ESP)
-    var luz10 by remember { mutableStateOf(false) } // Neblina
-    var luz11 by remember { mutableStateOf(false) } // Pneu Vazio
-    var luz12 by remember { mutableStateOf(false) } // Temp Motor
-    var luz13 by remember { mutableStateOf(false) } // V2X
-    var piscaEsquerdo by remember { mutableStateOf(false) }
-    var piscaDireito by remember { mutableStateOf(false) }
+
     var motoLigada by remember { mutableStateOf(motoLigadaInicial) }
+    // Sync motoLigada → indicadores para o TopBar das Settings mostrar o ícone
+    androidx.compose.runtime.SideEffect { indicadores.motoLigada = motoLigada }
     var velocidadeTarget by remember { mutableFloatStateOf(velocidadeInicial) }
     var modeIdx by remember { mutableIntStateOf(1) }
 
     // === Sistema de popup para indicadores ===
     var popupAtivo by remember { mutableStateOf<IndicadorInfo?>(null) }
     var popupVisivel by remember { mutableStateOf(false) }
+    var showTripPopup by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // Função para mostrar popup e tocar som se grave
@@ -218,22 +218,22 @@ fun DashboardScreen(
         }
     }
 
-    // Watchers para cada indicador
-    LaunchedEffect(motoLigada) { if (motoLigada) mostrarPopup("ready") }
-    LaunchedEffect(luz6) { if (luz6) mostrarPopup("battery") }
-    LaunchedEffect(luz7) { if (luz7) mostrarPopup("tempBat") }
-    LaunchedEffect(luz8) { if (luz8) mostrarPopup("minimos") }
-    LaunchedEffect(luz3) { if (luz3) mostrarPopup("medios") }
-    LaunchedEffect(luz2) { if (luz2) mostrarPopup("maximos") }
-    LaunchedEffect(luz10) { if (luz10) mostrarPopup("neblina") }
-    LaunchedEffect(luz12) { if (luz12) mostrarPopup("tempMotor") }
-    LaunchedEffect(luz5) { if (luz5) mostrarPopup("brake") }
-    LaunchedEffect(luz4) { if (luz4) mostrarPopup("mil") }
-    LaunchedEffect(luz1) { if (luz1) mostrarPopup("abs") }
-    LaunchedEffect(luz9) { if (luz9) mostrarPopup("esp") }
-    LaunchedEffect(luz11) { if (luz11) mostrarPopup("pneu") }
-    LaunchedEffect(luz13) { if (luz13) mostrarPopup("v2x") }
-    LaunchedEffect(marchaAtual) { if (marchaAtual == "N") mostrarPopup("neutral") }
+    // Watchers para cada indicador — só disparam em transições false→true, não ao re-entrar no ecrã
+    LaunchedEffect(Unit) { snapshotFlow { motoLigada }.drop(1).collect { if (it) mostrarPopup("ready") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz6 }.drop(1).collect { if (it) mostrarPopup("battery") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz7 }.drop(1).collect { if (it) mostrarPopup("tempBat") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz8 }.drop(1).collect { if (it) mostrarPopup("minimos") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz3 }.drop(1).collect { if (it) mostrarPopup("medios") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz2 }.drop(1).collect { if (it) mostrarPopup("maximos") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopup("neblina") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz12 }.drop(1).collect { if (it) mostrarPopup("tempMotor") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz5 }.drop(1).collect { if (it) mostrarPopup("brake") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopup("mil") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopup("abs") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopup("esp") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopup("pneu") } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz13 }.drop(1).collect { if (it) mostrarPopup("v2x") } }
+    LaunchedEffect(Unit) { snapshotFlow { marchaAtual }.drop(1).collect { if (it == "N") mostrarPopup("neutral") } }
 
     val velocidadeAnimadaState = animateFloatAsState(targetValue = if (motoLigada) velocidadeTarget else 0f, animationSpec = tween(1500, easing = FastOutSlowInEasing), label = "")
     val tempAnimadaState = animateFloatAsState(targetValue = if (motoLigada) 0.50f else 0f, animationSpec = tween(4000, easing = FastOutSlowInEasing), label = "")
@@ -242,9 +242,21 @@ fun DashboardScreen(
     var autonomia by remember { mutableFloatStateOf(autonomiaInicial) }
     var consumo by remember { mutableFloatStateOf(0f) }
     var aCarregar by remember { mutableStateOf(aCarregarInicial) }
-    LaunchedEffect(aCarregar) { if (aCarregar) mostrarPopup("charging") }
+
+    // === TRIP COMPUTER ===
+    var tripDistancia by remember { mutableFloatStateOf(0f) }
+    var tripTempoSeg by remember { mutableIntStateOf(0) }
+    var tripVelMax by remember { mutableFloatStateOf(0f) }
+    var tripConsumoTotal by remember { mutableFloatStateOf(0f) }
+    var tripAmostras by remember { mutableIntStateOf(0) }
+    val tripVelMedia = if (tripTempoSeg > 0) (tripDistancia / (tripTempoSeg / 3600f)) else 0f
+    val tripConsumoMedio = if (tripAmostras > 0) tripConsumoTotal / tripAmostras else 0f
+    val resetTrip = { tripDistancia = 0f; tripTempoSeg = 0; tripVelMax = 0f; tripConsumoTotal = 0f; tripAmostras = 0 }
+    LaunchedEffect(Unit) { snapshotFlow { aCarregar }.drop(1).collect { if (it) mostrarPopup("charging") } }
 
     val bateriaPercentagem = (autonomia / 200f) * 100f
+    // Tempo estimado de carga (minutos)
+    val tempoEstCarga = if (aCarregar && bateriaPercentagem < 100f) ((100f - bateriaPercentagem) / 100f * 45f).toInt() else 0
 
     val toggleCharging = {
         if (!aCarregar) {
@@ -276,11 +288,16 @@ fun DashboardScreen(
                 val deltaDistancia = (velReal / 3600f) * 0.1f
                 val distVisualTeste = deltaDistancia * 150f
                 odometro += distVisualTeste
+                tripDistancia += distVisualTeste
                 autonomia = maxOf(0f, autonomia - (distVisualTeste * multiplicadorConsumo))
                 consumo = (8.4f + (velReal * 0.05f)) * multiplicadorConsumo
+                if (velReal > tripVelMax) tripVelMax = velReal
+                tripConsumoTotal += consumo
+                tripAmostras++
             } else {
                 consumo = if (motoLigada && bateriaPercentagem > 0f) 0.8f * multiplicadorConsumo else 0.0f
             }
+            if (motoLigada) tripTempoSeg++
             if (autonomia <= 0f && velocidadeTarget > 0f) velocidadeTarget = 0f
             delay(100)
         }
@@ -291,8 +308,8 @@ fun DashboardScreen(
             if (isSimplifiedMode) {
                 // === MODO SIMPLIFICADO: Layout ultra-limpo ===
                 TopBarSection(
-                    luz1, luz2, luz3, luz4, luz5, luz6, luz7, luz8, luz9, luz10, luz11, luz12, luz13,
-                    motoLigada, marchaAtual, aCarregar, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
+                    indicadores.luz1, indicadores.luz2, indicadores.luz3, indicadores.luz4, indicadores.luz5, indicadores.luz6, indicadores.luz7, indicadores.luz8, indicadores.luz9, indicadores.luz10, indicadores.luz11, indicadores.luz12, indicadores.luz13,
+                    motoLigada, marchaAtual, aCarregar, indicadores.piscaEsquerdo, indicadores.piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
                 )
                 SimplifiedContentSection(
                     velocidadeAnimada = velocidadeAnimadaState.value,
@@ -308,17 +325,18 @@ fun DashboardScreen(
                     onMotoLigadaChange = { motoLigada = it; onMotoLigadaChange(it) },
                     onMarchaChange = onMarchaChange,
                     onVelocidadeTargetChange = { velocidadeTarget = it; onVelocidadeChange(it) },
-                    onToggleLuz1 = { luz1 = !luz1 }, onToggleLuz2 = { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false } },
-                    onToggleLuz3 = { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false } }, onToggleLuz4 = { luz4 = !luz4 },
-                    onToggleLuz5 = { luz5 = !luz5 }, onToggleLuz6 = { luz6 = !luz6 },
-                    onToggleLuz7 = { luz7 = !luz7 }, onToggleLuz8 = { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false } },
-                    onToggleLuz9 = { luz9 = !luz9 }, onToggleLuz10 = { luz10 = !luz10 },
-                    onToggleLuz11 = { luz11 = !luz11 }, onToggleLuz12 = { luz12 = !luz12 },
-                    onToggleLuz13 = { luz13 = !luz13 },
-                    onTogglePiscaEsq = { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false },
-                    onTogglePiscaDir = { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false },
+                    onToggleLuz1 = { indicadores.luz1 = !indicadores.luz1 }, onToggleLuz2 = { indicadores.luz2 = !indicadores.luz2; if (indicadores.luz2) { indicadores.luz3 = false; indicadores.luz8 = false } },
+                    onToggleLuz3 = { indicadores.luz3 = !indicadores.luz3; if (indicadores.luz3) { indicadores.luz2 = false; indicadores.luz8 = false } }, onToggleLuz4 = { indicadores.luz4 = !indicadores.luz4 },
+                    onToggleLuz5 = { indicadores.luz5 = !indicadores.luz5 }, onToggleLuz6 = { indicadores.luz6 = !indicadores.luz6 },
+                    onToggleLuz7 = { indicadores.luz7 = !indicadores.luz7 }, onToggleLuz8 = { indicadores.luz8 = !indicadores.luz8; if (indicadores.luz8) { indicadores.luz2 = false; indicadores.luz3 = false } },
+                    onToggleLuz9 = { indicadores.luz9 = !indicadores.luz9 }, onToggleLuz10 = { indicadores.luz10 = !indicadores.luz10 },
+                    onToggleLuz11 = { indicadores.luz11 = !indicadores.luz11 }, onToggleLuz12 = { indicadores.luz12 = !indicadores.luz12 },
+                    onToggleLuz13 = { indicadores.luz13 = !indicadores.luz13 },
+                    onTogglePiscaEsq = { indicadores.piscaEsquerdo = !indicadores.piscaEsquerdo; if (indicadores.piscaEsquerdo) indicadores.piscaDireito = false },
+                    onTogglePiscaDir = { indicadores.piscaDireito = !indicadores.piscaDireito; if (indicadores.piscaDireito) indicadores.piscaEsquerdo = false },
                     onToggleCarga = { toggleCharging() },
                     mostrarPopup = { mostrarPopup(it) },
+                    onToggleTripPopup = { showTripPopup = !showTripPopup },
                     modifier = Modifier.weight(0.73f).padding(horizontal = 32.dp)
                 )
                 val isRestricted = velocidadeAnimadaState.value > 0.1f || (motoLigada && marchaAtual != "P")
@@ -334,6 +352,7 @@ fun DashboardScreen(
                     runIfAllowed {
                         when (icon) {
                             R.drawable.ic_settings -> onNavigateToSettings()
+                            R.drawable.ic_nav -> onNavigateToNavigation()
                             R.drawable.ic_bluetooth -> try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) } catch (e: Exception) {}
                         }
                     }
@@ -343,10 +362,10 @@ fun DashboardScreen(
             } else {
                 // === MODO NORMAL: Layout completo ===
                 TopBarSection(
-                    luz1, luz2, luz3, luz4, luz5, luz6, luz7, luz8, luz9, luz10, luz11, luz12, luz13,
-                    motoLigada, marchaAtual, aCarregar, piscaEsquerdo, piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
+                    indicadores.luz1, indicadores.luz2, indicadores.luz3, indicadores.luz4, indicadores.luz5, indicadores.luz6, indicadores.luz7, indicadores.luz8, indicadores.luz9, indicadores.luz10, indicadores.luz11, indicadores.luz12, indicadores.luz13,
+                    motoLigada, marchaAtual, aCarregar, indicadores.piscaEsquerdo, indicadores.piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
                 )
-                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it; onMotoLigadaChange(it) }, onMarchaChange, { velocidadeTarget = it; onVelocidadeChange(it) }, { luz1 = !luz1 }, { luz2 = !luz2; if (luz2) { luz3 = false; luz8 = false } }, { luz3 = !luz3; if (luz3) { luz2 = false; luz8 = false } }, { luz4 = !luz4 }, { luz5 = !luz5 }, { luz6 = !luz6 }, { luz7 = !luz7 }, { luz8 = !luz8; if (luz8) { luz2 = false; luz3 = false } }, { luz9 = !luz9 }, { luz10 = !luz10 }, { luz11 = !luz11 }, { luz12 = !luz12 }, { luz13 = !luz13 }, { piscaEsquerdo = !piscaEsquerdo; if (piscaEsquerdo) piscaDireito = false }, { piscaDireito = !piscaDireito; if (piscaDireito) piscaEsquerdo = false }, { toggleCharging() }, { mostrarPopup(it) }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
+                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it; onMotoLigadaChange(it) }, onMarchaChange, { velocidadeTarget = it; onVelocidadeChange(it) }, { indicadores.luz1 = !indicadores.luz1 }, { indicadores.luz2 = !indicadores.luz2; if (indicadores.luz2) { indicadores.luz3 = false; indicadores.luz8 = false } }, { indicadores.luz3 = !indicadores.luz3; if (indicadores.luz3) { indicadores.luz2 = false; indicadores.luz8 = false } }, { indicadores.luz4 = !indicadores.luz4 }, { indicadores.luz5 = !indicadores.luz5 }, { indicadores.luz6 = !indicadores.luz6 }, { indicadores.luz7 = !indicadores.luz7 }, { indicadores.luz8 = !indicadores.luz8; if (indicadores.luz8) { indicadores.luz2 = false; indicadores.luz3 = false } }, { indicadores.luz9 = !indicadores.luz9 }, { indicadores.luz10 = !indicadores.luz10 }, { indicadores.luz11 = !indicadores.luz11 }, { indicadores.luz12 = !indicadores.luz12 }, { indicadores.luz13 = !indicadores.luz13 }, { indicadores.piscaEsquerdo = !indicadores.piscaEsquerdo; if (indicadores.piscaEsquerdo) indicadores.piscaDireito = false }, { indicadores.piscaDireito = !indicadores.piscaDireito; if (indicadores.piscaDireito) indicadores.piscaEsquerdo = false }, { toggleCharging() }, { mostrarPopup(it) }, { showTripPopup = !showTripPopup }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
                 InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
                 
                 val isRestricted = velocidadeAnimadaState.value > 0.1f || (motoLigada && marchaAtual != "P")
@@ -362,6 +381,7 @@ fun DashboardScreen(
                     runIfAllowed {
                         when (icon) {
                             R.drawable.ic_settings -> onNavigateToSettings()
+                            R.drawable.ic_nav -> onNavigateToNavigation()
                             R.drawable.ic_bluetooth -> try { context.startActivity(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)) } catch (e: Exception) {}
                         }
                     }
@@ -444,6 +464,66 @@ fun DashboardScreen(
                             )
                         }
                     }
+                }
+            }
+        }
+
+        // === POPUP TRIP COMPUTER (tecla I) ===
+        if (showTripPopup) {
+            val tripHoras = tripTempoSeg / 36000
+            val tripMinutos = (tripTempoSeg % 36000) / 600
+            val tripSegundos = (tripTempoSeg % 600) / 10
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f)).clickable { showTripPopup = false },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .background(Color(0xFF0D1117), shape = RoundedCornerShape(20.dp))
+                        .border(2.dp, uiElementColor.copy(alpha = 0.6f), shape = RoundedCornerShape(20.dp))
+                        .padding(horizontal = 48.dp, vertical = 28.dp)
+                        .widthIn(min = 420.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Text(s.tripTitle, color = uiElementColor, fontSize = 36.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    // Regen bar
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                        Text(s.regenLabel, color = secondaryText, fontSize = 20.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                        Spacer(modifier = Modifier.width(12.dp))
+                        LinearProgressIndicator(progress = { 0f }, modifier = Modifier.weight(1f).height(6.dp), color = Color(0xFF00E676), trackColor = secondaryText.copy(alpha = 0.15f))
+                    }
+                    Spacer(modifier = Modifier.height(2.dp))
+                    // Data rows
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(s.tripDistance, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                        Text(String.format(Locale.US, "%.1f km", tripDistancia), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(s.avgSpeed, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                        Text(String.format(Locale.US, "%.0f km/h", tripVelMedia), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(s.maxSpeed, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                        Text(String.format(Locale.US, "%.0f km/h", tripVelMax), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(s.tripTime, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                        Text(String.format(Locale.US, "%02d:%02d:%02d", tripHoras, tripMinutos, tripSegundos), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    }
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(s.avgConsumption, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                        Text(String.format(Locale.US, "%.1f kWh", tripConsumoMedio), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                    }
+                    if (aCarregar && tempoEstCarga > 0) {
+                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(s.chargeTimeEst, color = Color(0xFF00E676), fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                            Text("~${tempoEstCarga} min", color = Color(0xFF00E676), fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(s.resetTrip, color = uiElementColor.copy(alpha = 0.7f), fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight, modifier = Modifier.clickable { resetTrip() })
                 }
             }
         }
@@ -536,7 +616,7 @@ private fun TopBarSection(
 }
 
 @Composable
-private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit, onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, mostrarPopup: (String) -> Unit, modifier: Modifier = Modifier) {
+private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit, onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, mostrarPopup: (String) -> Unit, onToggleTripPopup: () -> Unit, modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -574,6 +654,7 @@ private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnim
                 Key.R -> { onToggleLuz13(); true }
                 Key.DirectionLeft -> { onTogglePiscaEsq(); true }
                 Key.DirectionRight -> { onTogglePiscaDir(); true }
+                Key.I -> { onToggleTripPopup(); true }
                 else -> false
             }
         } else false
@@ -603,7 +684,9 @@ private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnim
                 Text("km/h", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
             }
         }
-        Box(modifier = Modifier.weight(1.3f), contentAlignment = Alignment.Center) { Text(s.road3d, color = secondaryText, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = contrastWeight) }
+        Box(modifier = Modifier.weight(1.3f).fillMaxHeight().padding(16.dp), contentAlignment = Alignment.Center) { 
+            DashboardMap(modifier = Modifier.fillMaxSize(), motoLigada = motoLigada, velocidade = velocidadeAnimada, accentColor = accentColor)
+        }
         Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
             Box(modifier = Modifier.size(280.dp, 360.dp).align(Alignment.Center)) {
                 Canvas(modifier = Modifier.fillMaxSize()) {
@@ -660,6 +743,7 @@ private fun SimplifiedContentSection(
     onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit,
     onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit,
     mostrarPopup: (String) -> Unit,
+    onToggleTripPopup: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val focusRequester = remember { FocusRequester() }
@@ -700,6 +784,7 @@ private fun SimplifiedContentSection(
                     Key.R -> { onToggleLuz13(); true }
                     Key.DirectionLeft -> { onTogglePiscaEsq(); true }
                     Key.DirectionRight -> { onTogglePiscaDir(); true }
+                    Key.I -> { onToggleTripPopup(); true }
                     else -> false
                 }
             } else false
@@ -798,5 +883,85 @@ private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Co
                 }
             }
         }
+    }
+}
+
+@Composable
+fun DashboardMap(modifier: Modifier = Modifier, motoLigada: Boolean, velocidade: Float, accentColor: Color) {
+    val context = LocalContext.current
+    
+    // Configurar o osmdroid
+    LaunchedEffect(Unit) {
+        Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
+        // Evita que o userAgent padrão seja banido, embora o default sirva para testes.
+        Configuration.getInstance().userAgentValue = context.packageName
+    }
+    
+    // Estado do mapa
+    val mapState = remember {
+        MapView(context).apply {
+            setTileSource(TileSourceFactory.MAPNIK)
+            setMultiTouchControls(false) // Desativar toque para não interferir
+            controller.setZoom(16.5)
+            // Ponto central base (Lisboa)
+            controller.setCenter(GeoPoint(38.7223, -9.1393))
+            
+            // Filtro para escurecer o mapa, ficando num tom escuro/high-tech
+            val invertFilter = ColorMatrixColorFilter(
+                floatArrayOf(
+                    -0.8f,  0f,    0f,    0f,   255f, // Red
+                     0f,   -0.8f,  0f,    0f,   255f, // Green
+                     0f,    0f,   -0.8f,  0f,   255f, // Blue
+                     0f,    0f,    0f,    1f,   0f    // Alpha
+                )
+            )
+            overlayManager.tilesOverlay.setColorFilter(invertFilter)
+            
+            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
+            isClickable = false
+        }
+    }
+    
+    // Simular movimento da mota para dar sensação de navegação contínua
+    LaunchedEffect(motoLigada) {
+        var currentLat = 38.7223
+        var currentLon = -9.1393
+        while (motoLigada) {
+            val speed = velocidade // km/h
+            if (speed > 0.1f) {
+                // A cada 500ms, mover o mapa na simulação.
+                // 0.009 graus ~ 1km. Se formos a 60km/h -> 1km/min -> em 0.5s movemos 1/120 km.
+                val distKm = (speed / 3600f) * 0.5f 
+                val latDelta = distKm * 0.009
+                currentLat += latDelta
+                mapState.controller.animateTo(GeoPoint(currentLat, currentLon))
+            }
+            delay(500)
+        }
+    }
+    
+    Box(modifier = modifier.clip(RoundedCornerShape(16.dp))) {
+        AndroidView(
+            factory = { mapState },
+            modifier = Modifier.fillMaxSize()
+        )
+        // Gradiente escuro em cima e em baixo para misturar bem com o dashboard
+        Box(
+            modifier = Modifier.fillMaxSize().background(
+                Brush.verticalGradient(
+                    colors = listOf(Color.Black.copy(alpha=0.6f), Color.Transparent, Color.Black.copy(alpha=0.8f)),
+                    startY = 0f,
+                    endY = Float.POSITIVE_INFINITY
+                )
+            )
+        )
+        
+        // Ícone da mota (posição atual)
+        Icon(
+            painter = painterResource(id = R.drawable.ic_nav), 
+            contentDescription = "Position",
+            tint = accentColor,
+            modifier = Modifier.align(Alignment.Center).size(48.dp).rotate(-45f)
+        )
     }
 }

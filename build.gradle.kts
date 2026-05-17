@@ -70,7 +70,7 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
     implementation("androidx.compose.material:material-icons-extended:1.6.0") // (ou a versão do compose que estiver a usar)
-    
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
 }
 
 

@@ -48,6 +48,10 @@ data class AppStrings(
     // === DASHBOARD ===
     val road3d: String, val warning: String, val lowBattery: String,
     val critRange1: String, val critRange2: String,
+    // === TRIP COMPUTER ===
+    val tripTitle: String, val tripDistance: String, val avgSpeed: String,
+    val maxSpeed: String, val tripTime: String, val avgConsumption: String,
+    val resetTrip: String, val regenLabel: String, val chargeTimeEst: String,
     // === INDICADORES ===
     val indReady: String, val indCharging: String, val indNeutral: String,
     val indBattery: String, val indTempBat: String, val indMinimos: String,
@@ -104,6 +108,7 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "ERROR FEEDBACK", "Adjust the intensity of alerts when a system error happens", "HAPTIC BOOST", "MAXIMUM",
         "3D ROAD", "W A R N I N G", "LOW BATTERY (20%)",
         "Critical range. Please proceed to", "a charging station immediately.",
+        "TRIP", "DISTANCE", "AVG SPEED", "MAX SPEED", "TRIP TIME", "AVG CONSUMPTION", "RESET", "REGEN", "EST. CHARGE TIME",
         "MOTORCYCLE ON", "CHARGING", "NEUTRAL",
         "HV BATTERY WARNING", "HIGH BATTERY TEMPERATURE", "POSITION LIGHTS ON",
         "LOW BEAM ON", "HIGH BEAM ON", "FOG LIGHTS ON",
@@ -151,6 +156,7 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEEDBACK DE ERRO", "Ajustar a intensidade dos alertas em caso de erro", "VIBRAÇÃO FORTE", "MÁXIMO",
         "ESTRADA 3D", "A V I S O", "BATERIA FRACA (20%)",
         "Autonomia crítica. Por favor, dirija-se", "a um posto de carregamento imediatamente.",
+        "VIAGEM", "DISTÂNCIA", "VEL. MÉDIA", "VEL. MÁXIMA", "TEMPO", "CONSUMO MÉDIO", "REINICIAR", "REGEN", "TEMPO EST. CARGA",
         "MOTO LIGADA", "A CARREGAR", "PONTO MORTO",
         "AVISO BATERIA HV", "TEMPERATURA BATERIA ELEVADA", "MÍNIMOS LIGADOS",
         "MÉDIOS LIGADOS", "MÁXIMOS LIGADOS", "FARÓIS DE NEVOEIRO",
@@ -198,6 +204,7 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEEDBACK DE ERROR", "Ajustar la intensidad de alertas en caso de error", "VIBRACIÓN FUERTE", "MÁXIMO",
         "CARRETERA 3D", "A V I S O", "BATERÍA BAJA (20%)",
         "Autonomía crítica. Por favor, diríjase", "a una estación de carga inmediatamente.",
+        "VIAJE", "DISTANCIA", "VEL. MEDIA", "VEL. MÁXIMA", "TIEMPO", "CONSUMO MEDIO", "REINICIAR", "REGEN", "TIEMPO EST. CARGA",
         "MOTO ENCENDIDA", "CARGANDO", "PUNTO MUERTO",
         "AVISO BATERÍA HV", "TEMPERATURA BATERÍA ELEVADA", "LUCES DE POSICIÓN",
         "LUCES CORTAS", "LUCES LARGAS", "LUCES ANTINIEBLA",
@@ -245,6 +252,7 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "RETOUR D'ERREUR", "Ajuster l'intensité des alertes en cas d'erreur", "VIBRATION FORTE", "MAXIMUM",
         "ROUTE 3D", "A T T E N T I O N", "BATTERIE FAIBLE (20%)",
         "Autonomie critique. Veuillez vous diriger", "vers une station de recharge immédiatement.",
+        "TRAJET", "DISTANCE", "VIT. MOYENNE", "VIT. MAXIMALE", "DURÉE", "CONSO. MOYENNE", "RÉINITIALISER", "RÉCUP.", "TEMPS EST. CHARGE",
         "MOTO ALLUMÉE", "EN CHARGE", "POINT MORT",
         "ALERTE BATTERIE HV", "TEMPÉRATURE BATTERIE ÉLEVÉE", "FEUX DE POSITION",
         "FEUX DE CROISEMENT", "FEUX DE ROUTE", "FEUX DE BROUILLARD",
@@ -292,6 +300,7 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEHLER-FEEDBACK", "Intensität der Warnungen bei Systemfehlern anpassen", "STARKE VIBRATION", "MAXIMUM",
         "3D-STRASSE", "W A R N U N G", "BATTERIE SCHWACH (20%)",
         "Kritische Reichweite. Bitte fahren Sie", "sofort zu einer Ladestation.",
+        "FAHRT", "STRECKE", "Ø GESCHW.", "MAX GESCHW.", "FAHRZEIT", "Ø VERBRAUCH", "ZURÜCKSETZEN", "REKU.", "LADEZEIT GESCHÄTZT",
         "MOTORRAD EIN", "WIRD GELADEN", "LEERLAUF",
         "HV-BATTERIE WARNUNG", "HOHE BATTERIETEMPERATUR", "STANDLICHT EIN",
         "ABBLENDLICHT EIN", "FERNLICHT EIN", "NEBELSCHEINWERFER EIN",
@@ -339,6 +348,7 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FEEDBACK ERRORE", "Regolare l'intensità degli avvisi in caso di errore", "VIBRAZIONE FORTE", "MASSIMO",
         "STRADA 3D", "A T T E N Z I O N E", "BATTERIA SCARICA (20%)",
         "Autonomia critica. Per favore, dirigiti", "verso una stazione di ricarica immediatamente.",
+        "VIAGGIO", "DISTANZA", "VEL. MEDIA", "VEL. MASSIMA", "TEMPO", "CONSUMO MEDIO", "RESET", "REGEN", "TEMPO ST. CARICA",
         "MOTO ACCESA", "IN CARICA", "FOLLE",
         "ALLARME BATTERIA HV", "TEMPERATURA BATTERIA ELEVATA", "LUCI DI POSIZIONE",
         "ANABBAGLIANTI", "ABBAGLIANTI", "FENDINEBBIA",
@@ -348,4 +358,308 @@ fun getAppStrings(lang: AppLanguage): AppStrings = when (lang) {
         "FERMARSI PER CAMBIARE", "ACCENDERE PRIMA LA MOTO",
         "In fase di sviluppo..."
     )
+}
+
+fun adaptToLanguageComplexity(base: AppStrings, complexity: String, lang: AppLanguage): AppStrings {
+    if (complexity == "STANDARD") return base
+    return when (lang) {
+        AppLanguage.EN -> when (complexity) {
+            "SIMPLE" -> base.copy(
+                settingsTitle = "SETTINGS", bluetoothTitle = "PHONE", bluetoothDesc = "Connect your phone or headset",
+                connectTitle = "LINK APP", connectDesc = "Link your motorcycle to the app",
+                colorTitle = "COLOUR", colorDesc = "Pick a colour you like",
+                elemColorTitle = "ICON COLOUR", elemColorDesc = "Pick a colour for icons",
+                textColorTitle = "TEXT COLOUR", textColorDesc = "Pick a colour for text",
+                secTextColorTitle = "SMALL TEXT COLOUR", secTextColorDesc = "Pick a colour for small text",
+                langTitle = "LANGUAGE", langDesc = "Choose your language",
+                persTitle = "LOOK & FEEL", persDesc = "Change how things look",
+                aboutTitle = "ABOUT", aboutDesc = "Info about your motorcycle",
+                colorLibraryTitle = "PICK A COLOUR", dragColor = "Slide to pick a colour",
+                activateIaTitle = "SMART HELP", activateIaDesc = "Let the system help you automatically",
+                visualPrefTitle = "SCREEN LOOK", visualPrefDesc = "Change colours and text size",
+                touchTitle = "TOUCH", touchDesc = "Change how the screen responds to touch",
+                cognitiveTitle = "READING HELP", cognitiveDesc = "Make the screen easier to read",
+                audioHapticsTitle = "SOUNDS", audioHapticsDesc = "Change sounds and vibrations",
+                editIconsTitle = "MOVE ICONS", editIconsDesc = "Move icons around",
+                contrastTitle = "BRIGHTNESS", contrastDesc = "Make text easier to see",
+                textSizeTitle = "TEXT SIZE", textSizeDesc = "Make text bigger or smaller",
+                colorFiltersTitle = "COLOUR HELP", colorFiltersDesc = "Help with colour vision",
+                textSpacingTitle = "LETTER SPACING", textSpacingDesc = "Add more space between letters",
+                animationsTitle = "EFFECTS", animationsDesc = "Turn off moving effects",
+                touchSettingsTitle = "TOUCH SETTINGS", touchAreasTitle = "BUTTON SIZE", touchAreasDesc = "Make buttons bigger",
+                methodTitle = "HOW TO USE", methodDesc = "Choose how to use the screen",
+                responseTimeTitle = "SPEED", responseTimeDesc = "How fast the screen reacts to your touch",
+                errorPreventionTitle = "SAFETY CHECK", errorPreventionDesc = "Ask before doing important things",
+                langComplexityTitle = "WORD DIFFICULTY", langComplexityDesc = "Use simpler or harder words",
+                infoDensityTitle = "HOW MUCH INFO", infoDensityDesc = "Show more or less info on screen",
+                contextHelpTitle = "TIPS", contextHelpDesc = "Show tips about what things do",
+                alertsTitle = "WARNINGS", alertsDesc = "Choose which warnings to see",
+                audioHapticsScreenTitle = "SOUNDS & VIBRATIONS", feedbackDesc = "Choose sounds or vibrations you feel",
+                visualAlertsTitle = "SCREEN FLASH", visualAlertsDesc = "Flash the screen for important sounds",
+                errorFeedbackTitle = "WARNING STRENGTH", errorFeedbackDesc = "How strong the warning feels",
+                lowBattery = "BATTERY LOW (20%)", critRange1 = "Battery almost empty. Please go to", critRange2 = "a charging point now.",
+                indBattery = "BATTERY PROBLEM", indTempBat = "BATTERY TOO HOT", indTempMotor = "ENGINE TOO HOT",
+                indBrake = "BRAKE PROBLEM", indMil = "ENGINE PROBLEM", indAbs = "ABS PROBLEM",
+                indEsp = "STABILITY HELP OFF", indPneu = "FLAT TYRE",
+                indFullBattery = "BATTERY IS FULL", indStopFirst = "STOP THE MOTORCYCLE FIRST",
+                indStopToGear = "STOP TO CHANGE GEAR", indTurnOnToGear = "TURN ON THE MOTORCYCLE FIRST",
+                tripTitle = "RIDE INFO", tripDistance = "HOW FAR", avgSpeed = "AVERAGE SPEED", maxSpeed = "TOP SPEED", tripTime = "TIME", avgConsumption = "ENERGY USED", resetTrip = "START OVER", regenLabel = "ENERGY BACK", chargeTimeEst = "TIME LEFT",
+                workInProgress = "Coming soon..."
+            )
+            "TECHNICAL" -> base.copy(
+                settingsTitle = "SYSTEM CONFIG", bluetoothTitle = "BT PAIRING", bluetoothDesc = "Manage BT 5.0 pairing & intercom links",
+                connectTitle = "OTA SYNC", connectDesc = "OTA sync via MyFulgora telemetry bridge",
+                colorTitle = "BG COLOUR (HEX)", colorDesc = "Select HEX/HSL background from palette",
+                elemColorTitle = "UI TINT", elemColorDesc = "Modify UI element & icon tint values",
+                textColorTitle = "PRIMARY TEXT RGB", textColorDesc = "Set primary text RGB colour channel",
+                secTextColorTitle = "SECONDARY TEXT RGB", secTextColorDesc = "Configure secondary text colour output",
+                langTitle = "LOCALE", langDesc = "Set system locale & display language",
+                persTitle = "HMI CONFIG", persDesc = "Configure HMI layout, units & scaling",
+                aboutTitle = "SYSTEM DIAGNOSTICS", aboutDesc = "ECU firmware, VIN, CAN bus diagnostics",
+                colorLibraryTitle = "HUE SPECTRUM", dragColor = "Drag across hue spectrum (0-360°)",
+                activateIaTitle = "ML ADAPTIVE UI", activateIaDesc = "Enable ML-driven adaptive UI pipeline",
+                visualPrefTitle = "VISUAL PARAMETERS", visualPrefDesc = "Configure WCAG contrast, font scaling & filters",
+                touchTitle = "INPUT CALIBRATION", touchDesc = "Calibrate capacitive input & gesture recognition",
+                cognitiveTitle = "COGNITIVE LOAD", cognitiveDesc = "Adjust HMI cognitive load parameters",
+                audioHapticsTitle = "I/O FEEDBACK", audioHapticsDesc = "Configure audio/haptic feedback channels",
+                editIconsTitle = "CLUSTER LAYOUT", editIconsDesc = "Rearrange instrument cluster widget grid",
+                contrastTitle = "CONTRAST RATIO", contrastDesc = "Set WCAG 2.1 AAA luminance contrast ratio",
+                textSizeTitle = "FONT SCALE (SP)", textSizeDesc = "Adjust global font scale factor (dp/sp)",
+                colorFiltersTitle = "CVD MATRICES", colorFiltersDesc = "Apply CVD simulation matrices (protanopia/deuteranopia)",
+                textSpacingTitle = "TYPOGRAPHIC SPACING", textSpacingDesc = "Modify letter-spacing & line-height (em units)",
+                animationsTitle = "ANIM MULTIPLIER", animationsDesc = "Configure animation duration multiplier",
+                touchSettingsTitle = "INPUT PARAMETERS", touchAreasTitle = "TARGET SIZE (DP)", touchAreasDesc = "Set minimum WCAG target size (44dp/48dp)",
+                methodTitle = "INPUT MODALITY", methodDesc = "Select primary input modality (capacitive/swipe/HW)",
+                responseTimeTitle = "DEBOUNCE (MS)", responseTimeDesc = "Configure touch debounce threshold (ms)",
+                errorPreventionTitle = "CONFIRMATION DIALOGS", errorPreventionDesc = "Enable confirmation dialogs for critical CAN commands",
+                langComplexityTitle = "TERMINOLOGY REGISTER", langComplexityDesc = "Set terminology register (plain/standard/technical)",
+                infoDensityTitle = "TELEMETRY DENSITY", infoDensityDesc = "Configure telemetry data density level",
+                contextHelpTitle = "INLINE DOCS", contextHelpDesc = "Toggle inline contextual HMI documentation",
+                alertsTitle = "DTC FILTER", alertsDesc = "Set DTC notification priority filter threshold",
+                audioHapticsScreenTitle = "I/O FEEDBACK CONFIG", feedbackDesc = "Select system I/O feedback modality",
+                visualAlertsTitle = "VISUAL DTC FLASH", visualAlertsDesc = "Enable visual flash-on-audio DTC alerts",
+                errorFeedbackTitle = "HAPTIC INTENSITY", errorFeedbackDesc = "Set haptic actuator intensity for DTC events",
+                lowBattery = "HV PACK SOC CRITICAL (≤20%)", critRange1 = "SOC below minimum threshold. Navigate to", critRange2 = "nearest EVSE charging infrastructure.",
+                indBattery = "HV BATTERY FAULT — DTC P0A80", indTempBat = "PACK THERMAL RUNAWAY RISK", indTempMotor = "COOLANT TEMP EXCEEDS THRESHOLD",
+                indBrake = "HYDRAULIC BRAKE CIRCUIT FAILURE", indMil = "MIL — POWERTRAIN DTC ACTIVE", indAbs = "ABS MODULE FAULT — DTC C0035",
+                indEsp = "ESC/TCS DEACTIVATED", indPneu = "TPMS LOW PRESSURE WARNING",
+                indFullBattery = "SOC AT 100% — CHARGING TERMINATED", indStopFirst = "VEHICLE MUST BE STATIONARY",
+                indStopToGear = "ZERO VELOCITY REQUIRED FOR GEAR CHANGE", indTurnOnToGear = "IGNITION CYCLE REQUIRED",
+                tripTitle = "TRIP TELEMETRY", tripDistance = "ODOMETER Δ", avgSpeed = "Ø VELOCITY", maxSpeed = "V-MAX", tripTime = "ELAPSED", avgConsumption = "Ø CONSUMPTION", resetTrip = "RESET TRIP", regenLabel = "REGEN", chargeTimeEst = "ETA FULL SOC",
+                workInProgress = "Module under development..."
+            )
+            else -> base
+        }
+        AppLanguage.PT -> when (complexity) {
+            "SIMPLE" -> base.copy(
+                settingsTitle = "DEFINIÇÕES", bluetoothTitle = "TELEMÓVEL", bluetoothDesc = "Ligar o telemóvel ou auricular",
+                connectTitle = "LIGAR APP", connectDesc = "Ligar a mota à aplicação",
+                colorTitle = "COR", colorDesc = "Escolher uma cor que goste",
+                elemColorTitle = "COR DOS ÍCONES", elemColorDesc = "Escolher a cor dos ícones",
+                textColorTitle = "COR DAS LETRAS", textColorDesc = "Escolher a cor das letras",
+                secTextColorTitle = "COR DO TEXTO PEQUENO", secTextColorDesc = "Escolher a cor do texto pequeno",
+                langTitle = "IDIOMA", langDesc = "Escolher o idioma",
+                persTitle = "APARÊNCIA", persDesc = "Mudar como as coisas aparecem",
+                aboutTitle = "SOBRE", aboutDesc = "Informações sobre a sua mota",
+                colorLibraryTitle = "ESCOLHER COR", dragColor = "Deslize para escolher a cor",
+                activateIaTitle = "AJUDA INTELIGENTE", activateIaDesc = "Deixar o sistema ajudar automaticamente",
+                visualPrefTitle = "ASPETO DO ECRÃ", visualPrefDesc = "Mudar cores e tamanho das letras",
+                touchTitle = "TOQUE", touchDesc = "Mudar como o ecrã responde ao toque",
+                cognitiveTitle = "AJUDA DE LEITURA", cognitiveDesc = "Tornar o ecrã mais fácil de ler",
+                audioHapticsTitle = "SONS", audioHapticsDesc = "Mudar sons e vibrações",
+                editIconsTitle = "MOVER ÍCONES", editIconsDesc = "Mover ícones de sítio",
+                contrastTitle = "BRILHO", contrastDesc = "Tornar o texto mais visível",
+                textSizeTitle = "TAMANHO DAS LETRAS", textSizeDesc = "Aumentar ou diminuir as letras",
+                colorFiltersTitle = "AJUDA DE CORES", colorFiltersDesc = "Ajuda para quem vê mal as cores",
+                textSpacingTitle = "ESPAÇO ENTRE LETRAS", textSpacingDesc = "Mais espaço entre as letras",
+                animationsTitle = "EFEITOS", animationsDesc = "Desligar efeitos de movimento",
+                touchSettingsTitle = "DEFINIÇÕES DE TOQUE", touchAreasTitle = "TAMANHO DOS BOTÕES", touchAreasDesc = "Tornar os botões maiores",
+                methodTitle = "COMO USAR", methodDesc = "Escolher como usar o ecrã",
+                responseTimeTitle = "RAPIDEZ", responseTimeDesc = "Rapidez com que o ecrã reage ao toque",
+                errorPreventionTitle = "VERIFICAÇÃO", errorPreventionDesc = "Perguntar antes de fazer coisas importantes",
+                langComplexityTitle = "DIFICULDADE DAS PALAVRAS", langComplexityDesc = "Usar palavras mais simples ou mais difíceis",
+                infoDensityTitle = "QUANTA INFORMAÇÃO", infoDensityDesc = "Mostrar mais ou menos informação",
+                contextHelpTitle = "DICAS", contextHelpDesc = "Mostrar dicas sobre o que as coisas fazem",
+                alertsTitle = "AVISOS", alertsDesc = "Escolher que avisos ver",
+                audioHapticsScreenTitle = "SONS E VIBRAÇÕES", feedbackDesc = "Escolher sons ou vibrações",
+                visualAlertsTitle = "PISCAR ECRÃ", visualAlertsDesc = "Piscar o ecrã para sons importantes",
+                errorFeedbackTitle = "FORÇA DO AVISO", errorFeedbackDesc = "Força do aviso quando há um erro",
+                lowBattery = "BATERIA FRACA (20%)", critRange1 = "Bateria quase vazia. Por favor vá", critRange2 = "a um ponto de carregamento agora.",
+                indBattery = "PROBLEMA NA BATERIA", indTempBat = "BATERIA MUITO QUENTE", indTempMotor = "MOTOR MUITO QUENTE",
+                indBrake = "PROBLEMA NOS TRAVÕES", indMil = "PROBLEMA NO MOTOR", indAbs = "PROBLEMA NO ABS",
+                indEsp = "AJUDA DE ESTABILIDADE DESLIGADA", indPneu = "PNEU VAZIO",
+                indFullBattery = "BATERIA JÁ ESTÁ CHEIA", indStopFirst = "PARE A MOTA PRIMEIRO",
+                indStopToGear = "PARE PARA MUDAR DE MARCHA", indTurnOnToGear = "LIGUE A MOTA PRIMEIRO",
+                tripTitle = "INFO VIAGEM", tripDistance = "QUANTO FOI", avgSpeed = "VELOCIDADE MÉDIA", maxSpeed = "MAIS RÁPIDO", tripTime = "TEMPO", avgConsumption = "ENERGIA GASTA", resetTrip = "RECOMEÇAR", regenLabel = "ENERGIA DE VOLTA", chargeTimeEst = "FALTA",
+                workInProgress = "Em breve..."
+            )
+            "TECHNICAL" -> base.copy(
+                settingsTitle = "CONFIG. SISTEMA", bluetoothTitle = "EMPARELHAM. BT", bluetoothDesc = "Gerir emparelhamento BT 5.0 e links intercom",
+                connectTitle = "SYNC OTA", connectDesc = "Sincronização OTA via ponte telemetria MyFulgora",
+                colorTitle = "COR FUNDO (HEX)", colorDesc = "Selecionar fundo HEX/HSL da paleta",
+                elemColorTitle = "TINT UI", elemColorDesc = "Modificar valores de tint dos elementos UI",
+                textColorTitle = "TEXTO RGB PRIMÁRIO", textColorDesc = "Definir canal de cor RGB do texto primário",
+                secTextColorTitle = "TEXTO RGB SECUNDÁRIO", secTextColorDesc = "Configurar saída de cor do texto secundário",
+                langTitle = "LOCALE", langDesc = "Definir locale e idioma de exibição do sistema",
+                persTitle = "CONFIG. HMI", persDesc = "Configurar layout HMI, unidades e escala",
+                aboutTitle = "DIAGNÓSTICOS", aboutDesc = "Firmware ECU, VIN, diagnósticos barramento CAN",
+                colorLibraryTitle = "ESPECTRO DE MATIZ", dragColor = "Arrastar pelo espectro de matiz (0-360°)",
+                activateIaTitle = "UI ADAPTATIVA ML", activateIaDesc = "Ativar pipeline de UI adaptativa por ML",
+                visualPrefTitle = "PARÂMETROS VISUAIS", visualPrefDesc = "Configurar contraste WCAG, escala de fontes e filtros",
+                touchTitle = "CALIBRAÇÃO INPUT", touchDesc = "Calibrar entrada capacitiva e reconhecimento de gestos",
+                cognitiveTitle = "CARGA COGNITIVA", cognitiveDesc = "Ajustar parâmetros de carga cognitiva do HMI",
+                audioHapticsTitle = "FEEDBACK I/O", audioHapticsDesc = "Configurar canais de feedback áudio/háptico",
+                editIconsTitle = "LAYOUT CLUSTER", editIconsDesc = "Reorganizar grelha de widgets do cluster",
+                contrastTitle = "RÁCIO CONTRASTE", contrastDesc = "Definir rácio de contraste luminância WCAG 2.1 AAA",
+                textSizeTitle = "ESCALA FONTE (SP)", textSizeDesc = "Ajustar fator de escala global de fonte (dp/sp)",
+                colorFiltersTitle = "MATRIZES DVC", colorFiltersDesc = "Aplicar matrizes de simulação DVC (protanopia/deuteranopia)",
+                textSpacingTitle = "ESPAÇAMENTO TIPOGRÁFICO", textSpacingDesc = "Modificar letter-spacing e line-height (em)",
+                animationsTitle = "MULTIPLICADOR ANIM.", animationsDesc = "Configurar multiplicador de duração de animações",
+                touchSettingsTitle = "PARÂMETROS INPUT", touchAreasTitle = "TAMANHO ALVO (DP)", touchAreasDesc = "Definir tamanho alvo mínimo WCAG (44dp/48dp)",
+                methodTitle = "MODALIDADE INPUT", methodDesc = "Selecionar modalidade de entrada primária (capacitivo/swipe/HW)",
+                responseTimeTitle = "DEBOUNCE (MS)", responseTimeDesc = "Configurar limiar de debounce tátil (ms)",
+                errorPreventionTitle = "DIÁLOGOS CONFIRMAÇÃO", errorPreventionDesc = "Ativar diálogos de confirmação para comandos CAN críticos",
+                langComplexityTitle = "REGISTO TERMINOLÓGICO", langComplexityDesc = "Definir registo terminológico (simples/padrão/técnico)",
+                infoDensityTitle = "DENSIDADE TELEMETRIA", infoDensityDesc = "Configurar nível de densidade de telemetria",
+                contextHelpTitle = "DOCS INLINE", contextHelpDesc = "Alternar documentação contextual inline do HMI",
+                alertsTitle = "FILTRO DTC", alertsDesc = "Definir filtro de prioridade de notificações DTC",
+                audioHapticsScreenTitle = "CONFIG. FEEDBACK I/O", feedbackDesc = "Selecionar modalidade de feedback de I/O do sistema",
+                visualAlertsTitle = "FLASH VISUAL DTC", visualAlertsDesc = "Ativar flash visual em alertas DTC áudio",
+                errorFeedbackTitle = "INTENSIDADE HÁPTICA", errorFeedbackDesc = "Definir intensidade do atuador háptico para eventos DTC",
+                lowBattery = "SOC PACK HV CRÍTICO (≤20%)", critRange1 = "SOC abaixo do limiar mínimo. Navegue até", critRange2 = "infraestrutura EVSE mais próxima.",
+                indBattery = "FALHA BATERIA HV — DTC P0A80", indTempBat = "RISCO THERMAL RUNAWAY DO PACK", indTempMotor = "TEMP. REFRIGERANTE ACIMA DO LIMIAR",
+                indBrake = "FALHA CIRCUITO HIDRÁULICO DE TRAVAGEM", indMil = "MIL — DTC POWERTRAIN ATIVO", indAbs = "FALHA MÓDULO ABS — DTC C0035",
+                indEsp = "ESC/TCS DESATIVADO", indPneu = "ALERTA TPMS — PRESSÃO BAIXA",
+                indFullBattery = "SOC A 100% — CARREGAMENTO TERMINADO", indStopFirst = "VEÍCULO DEVE ESTAR ESTACIONÁRIO",
+                indStopToGear = "VELOCIDADE ZERO REQUERIDA PARA MUDANÇA", indTurnOnToGear = "CICLO DE IGNIÇÃO NECESSÁRIO",
+                tripTitle = "TELEMETRIA VIAGEM", tripDistance = "ODÓMETRO Δ", avgSpeed = "Ø VELOCIDADE", maxSpeed = "V-MAX", tripTime = "DECORRIDO", avgConsumption = "Ø CONSUMO", resetTrip = "REINICIAR TRIP", regenLabel = "REGEN", chargeTimeEst = "ETA SOC PLENO",
+                workInProgress = "Módulo em desenvolvimento..."
+            )
+            else -> base
+        }
+        AppLanguage.ES -> when (complexity) {
+            "SIMPLE" -> base.copy(
+                settingsTitle = "AJUSTES", bluetoothTitle = "TELÉFONO", bluetoothDesc = "Conectar el teléfono o auricular",
+                connectTitle = "CONECTAR APP", connectDesc = "Conectar la moto a la app",
+                colorTitle = "COLOR", colorDesc = "Elegir un color que te guste",
+                elemColorTitle = "COLOR ICONOS", elemColorDesc = "Elegir el color de los iconos",
+                textColorTitle = "COLOR LETRAS", textColorDesc = "Elegir el color de las letras",
+                secTextColorTitle = "COLOR TEXTO PEQUEÑO", secTextColorDesc = "Elegir el color del texto pequeño",
+                langTitle = "IDIOMA", langDesc = "Elegir el idioma",
+                persTitle = "ASPECTO", persDesc = "Cambiar cómo se ven las cosas",
+                aboutTitle = "SOBRE", aboutDesc = "Información sobre tu moto",
+                cognitiveTitle = "AYUDA DE LECTURA", langComplexityTitle = "DIFICULTAD PALABRAS", langComplexityDesc = "Usar palabras más fáciles o más difíciles",
+                infoDensityTitle = "CUÁNTA INFO", infoDensityDesc = "Mostrar más o menos información",
+                contextHelpTitle = "CONSEJOS", contextHelpDesc = "Mostrar consejos sobre qué hace cada cosa",
+                alertsTitle = "AVISOS", alertsDesc = "Elegir qué avisos ver",
+                indBattery = "PROBLEMA EN LA BATERÍA", indTempBat = "BATERÍA MUY CALIENTE", indTempMotor = "MOTOR MUY CALIENTE",
+                indBrake = "PROBLEMA EN LOS FRENOS", indMil = "PROBLEMA EN EL MOTOR", indAbs = "PROBLEMA EN EL ABS",
+                indEsp = "AYUDA DE ESTABILIDAD APAGADA", indPneu = "NEUMÁTICO DESINFLADO"
+            )
+            "TECHNICAL" -> base.copy(
+                settingsTitle = "CONFIG. SISTEMA", bluetoothTitle = "EMPAREJAM. BT", bluetoothDesc = "Gestionar emparejamiento BT 5.0 y enlaces intercom",
+                connectTitle = "SYNC OTA", connectDesc = "Sincronización OTA vía puente telemetría MyFulgora",
+                colorTitle = "COLOR FONDO (HEX)", colorDesc = "Seleccionar fondo HEX/HSL de la paleta",
+                persTitle = "CONFIG. HMI", cognitiveTitle = "CARGA COGNITIVA",
+                langComplexityTitle = "REGISTRO TERMINOLÓGICO", langComplexityDesc = "Definir registro terminológico (simple/estándar/técnico)",
+                infoDensityTitle = "DENSIDAD TELEMETRÍA", infoDensityDesc = "Configurar nivel de densidad de telemetría",
+                contextHelpTitle = "DOCS INLINE", contextHelpDesc = "Alternar documentación contextual inline del HMI",
+                alertsTitle = "FILTRO DTC", alertsDesc = "Definir filtro de prioridad de notificaciones DTC",
+                indBattery = "FALLO BATERÍA HV — DTC P0A80", indTempBat = "RIESGO THERMAL RUNAWAY DEL PACK", indTempMotor = "TEMP. REFRIGERANTE SOBRE UMBRAL",
+                indBrake = "FALLO CIRCUITO HIDRÁULICO DE FRENADO", indMil = "MIL — DTC POWERTRAIN ACTIVO", indAbs = "FALLO MÓDULO ABS — DTC C0035",
+                indEsp = "ESC/TCS DESACTIVADO", indPneu = "ALERTA TPMS — PRESIÓN BAJA"
+            )
+            else -> base
+        }
+        AppLanguage.FR -> when (complexity) {
+            "SIMPLE" -> base.copy(
+                settingsTitle = "RÉGLAGES", bluetoothTitle = "TÉLÉPHONE", bluetoothDesc = "Connecter votre téléphone ou casque",
+                connectTitle = "RELIER APP", connectDesc = "Relier votre moto à l'application",
+                colorTitle = "COULEUR", colorDesc = "Choisir une couleur que vous aimez",
+                persTitle = "APPARENCE", cognitiveTitle = "AIDE À LA LECTURE",
+                langComplexityTitle = "DIFFICULTÉ DES MOTS", langComplexityDesc = "Utiliser des mots plus simples ou plus techniques",
+                infoDensityTitle = "COMBIEN D'INFO", infoDensityDesc = "Montrer plus ou moins d'informations",
+                contextHelpTitle = "CONSEILS", contextHelpDesc = "Montrer des conseils sur chaque fonction",
+                alertsTitle = "ALERTES", alertsDesc = "Choisir quelles alertes voir",
+                indBattery = "PROBLÈME DE BATTERIE", indTempBat = "BATTERIE TROP CHAUDE", indTempMotor = "MOTEUR TROP CHAUD",
+                indBrake = "PROBLÈME DE FREINS", indMil = "PROBLÈME MOTEUR", indAbs = "PROBLÈME ABS",
+                indEsp = "AIDE À LA STABILITÉ DÉSACTIVÉE", indPneu = "PNEU À PLAT"
+            )
+            "TECHNICAL" -> base.copy(
+                settingsTitle = "CONFIG. SYSTÈME", bluetoothTitle = "APPAIRAGE BT", bluetoothDesc = "Gérer appairage BT 5.0 et liens intercom",
+                connectTitle = "SYNC OTA", connectDesc = "Sync OTA via pont télémétrie MyFulgora",
+                colorTitle = "COULEUR FOND (HEX)", colorDesc = "Sélectionner fond HEX/HSL depuis la palette",
+                persTitle = "CONFIG. IHM", cognitiveTitle = "CHARGE COGNITIVE",
+                langComplexityTitle = "REGISTRE TERMINOLOGIQUE", langComplexityDesc = "Définir registre terminologique (simple/standard/technique)",
+                infoDensityTitle = "DENSITÉ TÉLÉMÉTRIE", infoDensityDesc = "Configurer niveau de densité télémétrie",
+                contextHelpTitle = "DOCS INLINE", contextHelpDesc = "Basculer documentation contextuelle inline HMI",
+                alertsTitle = "FILTRE DTC", alertsDesc = "Définir filtre priorité notifications DTC",
+                indBattery = "DÉFAUT BATTERIE HV — DTC P0A80", indTempBat = "RISQUE EMBALLEMENT THERMIQUE PACK",
+                indTempMotor = "TEMP. LIQUIDE REFROIDISSEMENT AU-DESSUS DU SEUIL", indBrake = "DÉFAILLANCE CIRCUIT HYDRAULIQUE FREINAGE",
+                indMil = "MIL — DTC GROUPE MOTOPROPULSEUR ACTIF", indAbs = "DÉFAUT MODULE ABS — DTC C0035",
+                indEsp = "ESC/TCS DÉSACTIVÉ", indPneu = "ALERTE TPMS — PRESSION BASSE"
+            )
+            else -> base
+        }
+        AppLanguage.DE -> when (complexity) {
+            "SIMPLE" -> base.copy(
+                settingsTitle = "EINSTELLUNGEN", bluetoothTitle = "TELEFON", bluetoothDesc = "Telefon oder Headset verbinden",
+                connectTitle = "APP VERBINDEN", connectDesc = "Motorrad mit der App verbinden",
+                colorTitle = "FARBE", colorDesc = "Eine Farbe auswählen, die Ihnen gefällt",
+                persTitle = "AUSSEHEN", cognitiveTitle = "LESEHILFE",
+                langComplexityTitle = "WORTSCHWIERIGKEIT", langComplexityDesc = "Einfachere oder schwierigere Wörter verwenden",
+                infoDensityTitle = "INFOMENGE", infoDensityDesc = "Mehr oder weniger Informationen anzeigen",
+                contextHelpTitle = "TIPPS", contextHelpDesc = "Tipps zeigen, was die Dinge tun",
+                alertsTitle = "WARNUNGEN", alertsDesc = "Wählen Sie welche Warnungen Sie sehen",
+                indBattery = "BATTERIEPROBLEM", indTempBat = "BATTERIE ZU HEISS", indTempMotor = "MOTOR ZU HEISS",
+                indBrake = "BREMSPROBLEM", indMil = "MOTORPROBLEM", indAbs = "ABS-PROBLEM",
+                indEsp = "STABILITÄTSHILFE AUS", indPneu = "REIFEN PLATT"
+            )
+            "TECHNICAL" -> base.copy(
+                settingsTitle = "SYSTEMKONFIG.", bluetoothTitle = "BT-KOPPLUNG", bluetoothDesc = "BT 5.0-Kopplung und Intercom-Links verwalten",
+                connectTitle = "OTA-SYNC", connectDesc = "OTA-Sync über MyFulgora Telemetrie-Brücke",
+                colorTitle = "HINTERGRUND (HEX)", colorDesc = "HEX/HSL-Hintergrund aus Palette auswählen",
+                persTitle = "HMI-KONFIG.", cognitiveTitle = "KOGNITIVE LAST",
+                langComplexityTitle = "TERMINOLOGIEREGISTER", langComplexityDesc = "Terminologieregister festlegen (einfach/standard/technisch)",
+                infoDensityTitle = "TELEMETRIEDICHTE", infoDensityDesc = "Telemetrie-Dichtestufe konfigurieren",
+                contextHelpTitle = "INLINE-DOKS", contextHelpDesc = "Inline-Kontextdokumentation HMI umschalten",
+                alertsTitle = "DTC-FILTER", alertsDesc = "DTC-Benachrichtigungsprioritätsfilter festlegen",
+                indBattery = "HV-BATTERIEFEHLER — DTC P0A80", indTempBat = "PACK THERMAL RUNAWAY RISIKO",
+                indTempMotor = "KÜHLMITTELTEMP. ÜBER SCHWELLENWERT", indBrake = "HYDRAULISCHER BREMSKREISAUSFALL",
+                indMil = "MIL — ANTRIEBSSTRANG DTC AKTIV", indAbs = "ABS-MODULFEHLER — DTC C0035",
+                indEsp = "ESC/TCS DEAKTIVIERT", indPneu = "TPMS-WARNUNG — NIEDRIGER DRUCK"
+            )
+            else -> base
+        }
+        AppLanguage.IT -> when (complexity) {
+            "SIMPLE" -> base.copy(
+                settingsTitle = "IMPOSTAZIONI", bluetoothTitle = "TELEFONO", bluetoothDesc = "Collegare il telefono o le cuffie",
+                connectTitle = "COLLEGA APP", connectDesc = "Collegare la moto all'app",
+                colorTitle = "COLORE", colorDesc = "Scegliere un colore che ti piace",
+                persTitle = "ASPETTO", cognitiveTitle = "AIUTO LETTURA",
+                langComplexityTitle = "DIFFICOLTÀ PAROLE", langComplexityDesc = "Usare parole più semplici o più difficili",
+                infoDensityTitle = "QUANTE INFO", infoDensityDesc = "Mostrare più o meno informazioni",
+                contextHelpTitle = "SUGGERIMENTI", contextHelpDesc = "Mostrare suggerimenti su cosa fa ogni cosa",
+                alertsTitle = "AVVISI", alertsDesc = "Scegliere quali avvisi vedere",
+                indBattery = "PROBLEMA ALLA BATTERIA", indTempBat = "BATTERIA TROPPO CALDA", indTempMotor = "MOTORE TROPPO CALDO",
+                indBrake = "PROBLEMA AI FRENI", indMil = "PROBLEMA AL MOTORE", indAbs = "PROBLEMA ALL'ABS",
+                indEsp = "AIUTO STABILITÀ DISATTIVATO", indPneu = "PNEUMATICO SGONFIO"
+            )
+            "TECHNICAL" -> base.copy(
+                settingsTitle = "CONFIG. SISTEMA", bluetoothTitle = "ACCOPPIAMENTO BT", bluetoothDesc = "Gestire accoppiamento BT 5.0 e link intercom",
+                connectTitle = "SYNC OTA", connectDesc = "Sincronizzazione OTA via ponte telemetria MyFulgora",
+                colorTitle = "COLORE SFONDO (HEX)", colorDesc = "Selezionare sfondo HEX/HSL dalla palette",
+                persTitle = "CONFIG. HMI", cognitiveTitle = "CARICO COGNITIVO",
+                langComplexityTitle = "REGISTRO TERMINOLOGICO", langComplexityDesc = "Impostare registro terminologico (semplice/standard/tecnico)",
+                infoDensityTitle = "DENSITÀ TELEMETRIA", infoDensityDesc = "Configurare livello densità telemetria",
+                contextHelpTitle = "DOCS INLINE", contextHelpDesc = "Attivare documentazione contestuale inline HMI",
+                alertsTitle = "FILTRO DTC", alertsDesc = "Impostare filtro priorità notifiche DTC",
+                indBattery = "GUASTO BATTERIA HV — DTC P0A80", indTempBat = "RISCHIO THERMAL RUNAWAY PACK",
+                indTempMotor = "TEMP. REFRIGERANTE SOPRA SOGLIA", indBrake = "GUASTO CIRCUITO IDRAULICO FRENATA",
+                indMil = "MIL — DTC POWERTRAIN ATTIVO", indAbs = "GUASTO MODULO ABS — DTC C0035",
+                indEsp = "ESC/TCS DISATTIVATO", indPneu = "ALLARME TPMS — PRESSIONE BASSA"
+            )
+            else -> base
+        }
+    }
 }
