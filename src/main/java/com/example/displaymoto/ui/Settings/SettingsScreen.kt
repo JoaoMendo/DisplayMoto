@@ -1,4 +1,4 @@
-﻿package com.example.displaymoto.ui.screens.dashboard
+package com.example.displaymoto.ui.screens.dashboard
 
 import android.app.Activity
 import android.content.Context
@@ -7,7 +7,9 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -74,6 +76,8 @@ fun SettingsScreen(
     s: AppStrings, currentAppLanguage: AppLanguage = AppLanguage.EN, onAppLanguageChange: (AppLanguage) -> Unit = {},
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "N",
     corFundoAtual: Color, corPersonalizada: Color = Color(0xFF0D0F26), currentContrast: String = "STANDARD",
+    unidadeVelocidade: String = "km/h",
+    onUnidadeChange: (String) -> Unit = {},
     onCorFundoChange: (Color) -> Unit = {}, onCorElementosChange: (Color) -> Unit = {}, onCorTextoChange: (Color) -> Unit = {}, onCorTextoSecundarioChange: (Color) -> Unit = {}, onNavigateBack: () -> Unit = {}, onNavigateToPersonalization: () -> Unit = {},
     aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null,
     indicadores: com.example.displaymoto.IndicadoresState = remember { com.example.displaymoto.IndicadoresState() }
@@ -111,25 +115,26 @@ fun SettingsScreen(
     var popupGrave by remember { mutableStateOf(false) }
     var popupVisivel by remember { mutableStateOf(false) }
 
+    val alertFeedback = com.example.displaymoto.LocalAlertFeedback.current
     fun mostrarPopupSettings(msg: String, cor: Color, grave: Boolean) {
         popupMensagem = msg; popupCor = cor; popupGrave = grave; popupVisivel = true
-        if (grave) { try { val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100); tg.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tg.release() }, 600) } catch (_: Exception) {} }
+        alertFeedback(msg, grave)
     }
 
     LaunchedEffect(popupVisivel) { if (popupVisivel) { delay(3000); popupVisivel = false } }
 
     // Watchers
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopupSettings(s.indAbs, Color(0xFFFFD600), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopupSettings(s.indAbs, Color(0xFFFFB300), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz2 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMaximos, Color(0xFF42A5F5), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz3 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMedios, Color(0xFF00E676), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMil, Color(0xFFFFD600), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMil, Color(0xFFFFB300), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz5 }.drop(1).collect { if (it) mostrarPopupSettings(s.indBrake, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz6 }.drop(1).collect { if (it) mostrarPopupSettings(s.indBattery, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz7 }.drop(1).collect { if (it) mostrarPopupSettings(s.indTempBat, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz8 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMinimos, Color(0xFF00E676), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopupSettings(s.indEsp, Color(0xFFFFD600), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopupSettings(s.indNeblina, Color(0xFFFFD600), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopupSettings(s.indPneu, Color(0xFFFFD600), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopupSettings(s.indEsp, Color(0xFFFFB300), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopupSettings(s.indNeblina, Color(0xFFFFB300), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopupSettings(s.indPneu, Color(0xFFFFB300), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz12 }.drop(1).collect { if (it) mostrarPopupSettings(s.indTempMotor, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz13 }.drop(1).collect { if (it) mostrarPopupSettings(s.indV2x, Color(0xFF42A5F5), false) } }
 
@@ -137,7 +142,7 @@ fun SettingsScreen(
         if (indicadores.piscaEsquerdo || indicadores.piscaDireito) while (true) { piscaPulso = true; delay(400); piscaPulso = false; delay(400) }
     }
     LaunchedEffect(Unit) {
-        while (true) { currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("Europe/Lisbon") }.format(Date()); delay(1000) }
+        while (true) { currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()); delay(1000) }
     }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { try { currentTemp = "${JSONObject(URL("https://api.open-meteo.com/v1/forecast?latitude=41.3006&longitude=-7.7441&current_weather=true").readText()).getJSONObject("current_weather").getInt("temperature")}ºC" } catch (_: Exception) {} }
@@ -171,8 +176,8 @@ fun SettingsScreen(
             } else false
         }) {
             TopBarSectionSettings(currentTime = currentTime, currentTemp = currentTemp, pEsq = indicadores.piscaEsquerdo, pDir = indicadores.piscaDireito, pPulso = piscaPulso, l1 = indicadores.luz1, l2 = indicadores.luz2, l3 = indicadores.luz3, l4 = indicadores.luz4, l5 = indicadores.luz5, l6 = indicadores.luz6, l7 = indicadores.luz7, l8 = indicadores.luz8, l9 = indicadores.luz9, l10 = indicadores.luz10, l11 = indicadores.luz11, l12 = indicadores.luz12, l13 = indicadores.luz13, motoLigada = indicadores.motoLigada, marchaAtual = marchaAtual, aCarregar = aCarregarAtual, textColor = primaryText, modifier = Modifier.weight(0.12f))
-            SettingsContentSection(s = s, currentAppLanguage = currentAppLanguage, onAppLanguageChange = onAppLanguageChange, onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onCorElementosSelecionada = onCorElementosChange, onCorTextoSelecionada = onCorTextoChange, onCorTextoSecundarioSelecionada = onCorTextoSecundarioChange, onOpenLibrary = { showColorLibrary = true }, onOpenElemLibrary = { showElemColorLibrary = true }, onOpenTextLibrary = { showTextColorLibrary = true }, onOpenSecTextLibrary = { showSecTextColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, corDestaque = corDestaque, iconColor = iconColor, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
-            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = corDestaque, iconColor = iconColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
+            SettingsContentSection(s = s, currentAppLanguage = currentAppLanguage, onAppLanguageChange = onAppLanguageChange, onVoltar = onNavigateBack, onCorSelecionada = onCorFundoChange, onCorElementosSelecionada = onCorElementosChange, onCorTextoSelecionada = onCorTextoChange, onCorTextoSecundarioSelecionada = onCorTextoSecundarioChange, onOpenLibrary = { showColorLibrary = true }, onOpenElemLibrary = { showElemColorLibrary = true }, onOpenTextLibrary = { showTextColorLibrary = true }, onOpenSecTextLibrary = { showSecTextColorLibrary = true }, onNavigateToPersonalization = onNavigateToPersonalization, unidadeVelocidade = unidadeVelocidade, onUnidadeChange = onUnidadeChange, corDestaque = corDestaque, iconColor = iconColor, primaryText = primaryText, secondaryText = secondaryText, modifier = Modifier.weight(0.73f))
+            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = corDestaque, iconColor = iconColor, textColor = primaryText, u = unidadeVelocidade, modifier = Modifier.weight(0.15f))
         }
 
         // === Popup de indicador ===
@@ -223,7 +228,7 @@ fun TopBarSectionSettings(
     textColor: Color = Color.White, modifier: Modifier = Modifier
 ) {
     val corVerde = Color(0xFF00E676); val corAzul = Color(0xFF448AFF)
-    val corAmarelo = Color(0xFFFFD600); val corVermelho = Color(0xFFFF1744)
+    val corAmarelo = Color(0xFFFFB300); val corVermelho = Color(0xFFFF1744)
     val readyToDrive = motoLigada; val neutralAtivo = marchaAtual == "N"; val chargingAtivo = aCarregar
 
     Box(modifier = modifier.fillMaxWidth().fillMaxHeight().padding(horizontal = 32.dp)) {
@@ -268,13 +273,15 @@ fun TopBarSectionSettings(
 }
 
 @Composable
-fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, isCharging: Boolean = false, corDestaque: Color, iconColor: Color = corDestaque, textColor: Color = Color.White, modifier: Modifier = Modifier) {
+fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, isCharging: Boolean = false, corDestaque: Color, iconColor: Color = corDestaque, textColor: Color = Color.White, u: String = "km/h", modifier: Modifier = Modifier) {
     val corBateria = when { isCharging -> corDestaque; b <= 20 -> Color.Red; else -> Color(0xFF00FF7F) }
 
     Row(modifier = modifier.fillMaxWidth().background(textColor.copy(alpha = 0.08f)).padding(horizontal = 40.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         // Velocidade (TalkBack vai ler o texto diretamente, a barra não precisa de descrição extra)
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.semantics(mergeDescendants = true) {}) {
-            Text("$v KM/H", color = textColor, fontSize = 42.sp, fontFamily = montserratFont, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { contentDescription = "Speed $v kilometers per hour" })
+            val displayV = if (u == "mph") (v / 1.60934).toInt() else v
+            val unitStr = if (u == "mph") "MPH" else "KM/H"
+            Text("$displayV $unitStr", color = textColor, fontSize = 42.sp, fontFamily = montserratFont, fontWeight = FontWeight.Bold, modifier = Modifier.semantics { contentDescription = "Speed $displayV $unitStr" })
             Spacer(Modifier.width(16.dp))
             Box(modifier = Modifier.width(180.dp).height(20.dp).clip(ParallelogramShape(30f)).background(Color.White.copy(alpha = 0.5f))) {
                 Box(modifier = Modifier.fillMaxWidth(v / 120f).fillMaxHeight().background(corDestaque))
@@ -306,26 +313,47 @@ fun BottomStatusSection(v: Int, b: Int, tB: Int, tM: Int, m: String, isCharging:
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SettingItem(titulo: String, subtitulo: String, primaryColor: Color = Color.White, secondaryColor: Color = Color.Gray, onClick: (() -> Unit)? = null, conteudo: @Composable () -> Unit = {}) {
     val missClickTracker = com.example.displaymoto.LocalMissClickTracker.current
-    // Adicionamos Role.Button para o Android saber que isto é clicável e dar o som de feedback correto
-    val modifier = if (onClick != null) {
-        Modifier.fillMaxWidth().clickable(onClickLabel = "Open $titulo setting", role = Role.Button) { onClick() }.padding(vertical = 12.dp, horizontal = 16.dp)
-    } else {
-        Modifier.fillMaxWidth().clickable(onClickLabel = "Open $titulo setting", role = Role.Button) { missClickTracker() }.padding(vertical = 12.dp, horizontal = 16.dp)
+    val helpMode = com.example.displaymoto.LocalHelpMode.current
+
+    // "ON DEMAND" → subtítulo só aparece depois de manter premido (toggle por item)
+    var subtituloRevelado by remember { mutableStateOf(false) }
+    val mostrarSubtitulo = when (helpMode) {
+        "OFF"        -> false
+        "ON DEMAND"  -> subtituloRevelado
+        else         -> true   // "ALWAYS ON" / default
     }
+
+    val baseClick: () -> Unit = { onClick?.invoke() ?: missClickTracker() }
+    val baseLongClick: (() -> Unit)? = if (helpMode == "ON DEMAND") {
+        { subtituloRevelado = !subtituloRevelado }
+    } else null
+
+    val modifier = Modifier.fillMaxWidth()
+        .combinedClickable(
+            onClickLabel = "Open $titulo setting",
+            role = Role.Button,
+            onLongClick = baseLongClick,
+            onClick = baseClick
+        )
+        .padding(vertical = 12.dp, horizontal = 16.dp)
+
     Row(modifier = modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
         Column(modifier = Modifier.weight(1f).padding(end = 16.dp)) {
             Text(titulo, color = primaryColor, fontSize = 28.sp, fontFamily = montserratFont)
-            Text(subtitulo, color = secondaryColor, fontSize = 18.sp, fontFamily = robotoFont)
+            if (mostrarSubtitulo) {
+                Text(subtitulo, color = secondaryColor, fontSize = 18.sp, fontFamily = robotoFont)
+            }
         }
         conteudo()
     }
 }
 
 @Composable
-fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onAppLanguageChange: (AppLanguage) -> Unit, onVoltar: () -> Unit, onCorSelecionada: (Color) -> Unit, onCorElementosSelecionada: (Color) -> Unit, onCorTextoSelecionada: (Color) -> Unit, onCorTextoSecundarioSelecionada: (Color) -> Unit, onOpenLibrary: () -> Unit, onOpenElemLibrary: () -> Unit, onOpenTextLibrary: () -> Unit, onOpenSecTextLibrary: () -> Unit, onNavigateToPersonalization: () -> Unit, corDestaque: Color, iconColor: Color, primaryText: Color, secondaryText: Color, modifier: Modifier = Modifier) {
+fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onAppLanguageChange: (AppLanguage) -> Unit, onVoltar: () -> Unit, onCorSelecionada: (Color) -> Unit, onCorElementosSelecionada: (Color) -> Unit, onCorTextoSelecionada: (Color) -> Unit, onCorTextoSecundarioSelecionada: (Color) -> Unit, onOpenLibrary: () -> Unit, onOpenElemLibrary: () -> Unit, onOpenTextLibrary: () -> Unit, onOpenSecTextLibrary: () -> Unit, onNavigateToPersonalization: () -> Unit, unidadeVelocidade: String, onUnidadeChange: (String) -> Unit, corDestaque: Color, iconColor: Color, primaryText: Color, secondaryText: Color, modifier: Modifier = Modifier) {
     val activity = LocalContext.current.findActivity()
     val scrollState = rememberScrollState()
     var showLanguageDropdown by remember { mutableStateOf(false) }
@@ -376,7 +404,7 @@ fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onApp
                 SettingItem(titulo = s.elemColorTitle, subtitulo = s.elemColorDesc, primaryColor = primaryText, secondaryColor = secondaryText, conteudo = {
                     Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
                         CirculoCor(Color(0xFF00BFFF), "Cyan") { onCorElementosSelecionada(Color(0xFF00BFFF)) }
-                        CirculoCor(Color(0xFFFFD600), "Amber") { onCorElementosSelecionada(Color(0xFFFFD600)) }
+                        CirculoCor(Color(0xFFFFB300), "Amber") { onCorElementosSelecionada(Color(0xFFFFB300)) }
                         CirculoCor(Color.White, "White") { onCorElementosSelecionada(Color.White) }
                         Text(s.more, color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable(role = Role.Button) { onOpenElemLibrary() })
                     }
@@ -399,6 +427,19 @@ fun SettingsContentSection(s: AppStrings, currentAppLanguage: AppLanguage, onApp
                         Text(s.more, color = corDestaque, fontSize = 18.sp, modifier = Modifier.clickable(role = Role.Button) { onOpenSecTextLibrary() })
                     }
                 })
+                LinhaDivisoria(corDestaque)
+                SettingItem(
+                    titulo = s.vehRegUnitTitle,
+                    subtitulo = s.vehRegUnitSub,
+                    primaryColor = primaryText, secondaryColor = secondaryText,
+                    conteudo = {
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text(text = "KM/H", color = if (unidadeVelocidade == "km/h") corDestaque else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (unidadeVelocidade == "km/h") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onUnidadeChange("km/h") })
+                            Text(text = "|", color = secondaryText, fontSize = 24.sp, fontFamily = robotoFont)
+                            Text(text = "MPH", color = if (unidadeVelocidade == "mph") corDestaque else secondaryText, fontSize = 24.sp, fontFamily = robotoFont, fontWeight = if (unidadeVelocidade == "mph") FontWeight.Bold else FontWeight.Normal, modifier = Modifier.clickable { onUnidadeChange("mph") })
+                        }
+                    }
+                )
                 LinhaDivisoria(corDestaque)
                 SettingItem(titulo = s.langTitle, subtitulo = s.langDesc, primaryColor = primaryText, secondaryColor = secondaryText, onClick = { showLanguageDropdown = true }, conteudo = {
                     Box {

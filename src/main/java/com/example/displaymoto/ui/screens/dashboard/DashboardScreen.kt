@@ -69,13 +69,7 @@ import java.net.URL
 import com.example.displaymoto.AppStrings
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.ui.graphics.Brush
-import org.osmdroid.config.Configuration
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import android.graphics.ColorMatrixColorFilter
 
 val agencyFb: FontFamily = FontFamily(Font(R.font.agency_fb))
 
@@ -91,17 +85,17 @@ private val indicadorInfoMap = mapOf(
     "minimos" to IndicadorInfo("minimos", Color(0xFF00E676), false),
     "medios" to IndicadorInfo("medios", Color(0xFF00E676), false),
     "maximos" to IndicadorInfo("maximos", Color(0xFF42A5F5), false),
-    "neblina" to IndicadorInfo("neblina", Color(0xFFFFD600), false),
+    "neblina" to IndicadorInfo("neblina", Color(0xFFFFB300), false),
     "tempMotor" to IndicadorInfo("tempMotor", Color(0xFFE53935), true),
     "brake" to IndicadorInfo("brake", Color(0xFFE53935), true),
-    "mil" to IndicadorInfo("mil", Color(0xFFFFD600), false),
-    "abs" to IndicadorInfo("abs", Color(0xFFFFD600), false),
-    "esp" to IndicadorInfo("esp", Color(0xFFFFD600), false),
-    "pneu" to IndicadorInfo("pneu", Color(0xFFFFD600), false),
+    "mil" to IndicadorInfo("mil", Color(0xFFFFB300), false),
+    "abs" to IndicadorInfo("abs", Color(0xFFFFB300), false),
+    "esp" to IndicadorInfo("esp", Color(0xFFFFB300), false),
+    "pneu" to IndicadorInfo("pneu", Color(0xFFFFB300), false),
     "v2x" to IndicadorInfo("v2x", Color(0xFF42A5F5), false),
-    "stop_first" to IndicadorInfo("stopFirst", Color(0xFFFFD600), false),
-    "stop_to_gear" to IndicadorInfo("stopToGear", Color(0xFFFFD600), false),
-    "turn_on_to_gear" to IndicadorInfo("turnOnToGear", Color(0xFFFFD600), false)
+    "stop_first" to IndicadorInfo("stopFirst", Color(0xFFFFB300), false),
+    "stop_to_gear" to IndicadorInfo("stopToGear", Color(0xFFFFB300), false),
+    "turn_on_to_gear" to IndicadorInfo("turnOnToGear", Color(0xFFFFB300), false)
 )
 
 // Resolver chave para string localizada
@@ -155,6 +149,9 @@ fun DashboardScreen(
     aiSecondaryText: Color? = null,
     onMarchaChange: (String) -> Unit = {},
     isSimplifiedMode: Boolean = false,
+    unidadeVelocidade: String = "km/h",
+    velocidadeMaximaKmh: Int = 200,
+    densityMode: String = "STANDARD",
     indicadores: com.example.displaymoto.IndicadoresState = remember { com.example.displaymoto.IndicadoresState() }
 ) {
     val isLightBg = corPersonalizada.luminance() > 0.5f
@@ -193,21 +190,23 @@ fun DashboardScreen(
     var popupAtivo by remember { mutableStateOf<IndicadorInfo?>(null) }
     var popupVisivel by remember { mutableStateOf(false) }
     var showTripPopup by remember { mutableStateOf(false) }
-    val context = LocalContext.current
 
-    // Função para mostrar popup e tocar som se grave
+    // Driver-lock: fecha o trip-computer automaticamente se a moto começar a andar
+    val velocidadeAtualInt = velocidadeTarget.toInt()
+    LaunchedEffect(velocidadeAtualInt) {
+        if (showTripPopup && com.example.displaymoto.aMover(velocidadeAtualInt)) {
+            showTripPopup = false
+        }
+    }
+    val context = LocalContext.current
+    val alertFeedback = com.example.displaymoto.LocalAlertFeedback.current
+
+    // Mostra popup visual e delega TODO o feedback áudio/háptico/flash ao controlador central.
     fun mostrarPopup(chave: String) {
         val info = indicadorInfoMap[chave] ?: return
         popupAtivo = info
         popupVisivel = true
-        if (info.grave) {
-            try {
-                val toneGen = ToneGenerator(AudioManager.STREAM_ALARM, 100)
-                toneGen.startTone(ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500)
-                // Liberar após 600ms
-                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ toneGen.release() }, 600)
-            } catch (_: Exception) { }
-        }
+        alertFeedback(resolverMensagem(s, chave), info.grave)
     }
 
     // Auto-dismiss popup após 3 segundos
@@ -322,6 +321,7 @@ fun DashboardScreen(
                     secondaryText = secondaryText,
                     accentColor = uiElementColor,
                     contrastWeight = contrastWeight,
+                    unidadeVelocidade = unidadeVelocidade,
                     onMotoLigadaChange = { motoLigada = it; onMotoLigadaChange(it) },
                     onMarchaChange = onMarchaChange,
                     onVelocidadeTargetChange = { velocidadeTarget = it; onVelocidadeChange(it) },
@@ -336,7 +336,14 @@ fun DashboardScreen(
                     onTogglePiscaDir = { indicadores.piscaDireito = !indicadores.piscaDireito; if (indicadores.piscaDireito) indicadores.piscaEsquerdo = false },
                     onToggleCarga = { toggleCharging() },
                     mostrarPopup = { mostrarPopup(it) },
-                    onToggleTripPopup = { showTripPopup = !showTripPopup },
+                    onToggleTripPopup = {
+                        // Driver-lock: trip computer só com a moto parada (viola single-glance em movimento)
+                        if (com.example.displaymoto.aMover(velocidadeAnimadaState.value.toInt())) {
+                            mostrarPopup("stop_first")
+                        } else {
+                            showTripPopup = !showTripPopup
+                        }
+                    },
                     modifier = Modifier.weight(0.73f).padding(horizontal = 32.dp)
                 )
                 val isRestricted = velocidadeAnimadaState.value > 0.1f || (motoLigada && marchaAtual != "P")
@@ -365,8 +372,8 @@ fun DashboardScreen(
                     indicadores.luz1, indicadores.luz2, indicadores.luz3, indicadores.luz4, indicadores.luz5, indicadores.luz6, indicadores.luz7, indicadores.luz8, indicadores.luz9, indicadores.luz10, indicadores.luz11, indicadores.luz12, indicadores.luz13,
                     motoLigada, marchaAtual, aCarregar, indicadores.piscaEsquerdo, indicadores.piscaDireito, primaryText, contrastWeight, Modifier.weight(0.18f).padding(horizontal = 32.dp)
                 )
-                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, { motoLigada = it; onMotoLigadaChange(it) }, onMarchaChange, { velocidadeTarget = it; onVelocidadeChange(it) }, { indicadores.luz1 = !indicadores.luz1 }, { indicadores.luz2 = !indicadores.luz2; if (indicadores.luz2) { indicadores.luz3 = false; indicadores.luz8 = false } }, { indicadores.luz3 = !indicadores.luz3; if (indicadores.luz3) { indicadores.luz2 = false; indicadores.luz8 = false } }, { indicadores.luz4 = !indicadores.luz4 }, { indicadores.luz5 = !indicadores.luz5 }, { indicadores.luz6 = !indicadores.luz6 }, { indicadores.luz7 = !indicadores.luz7 }, { indicadores.luz8 = !indicadores.luz8; if (indicadores.luz8) { indicadores.luz2 = false; indicadores.luz3 = false } }, { indicadores.luz9 = !indicadores.luz9 }, { indicadores.luz10 = !indicadores.luz10 }, { indicadores.luz11 = !indicadores.luz11 }, { indicadores.luz12 = !indicadores.luz12 }, { indicadores.luz13 = !indicadores.luz13 }, { indicadores.piscaEsquerdo = !indicadores.piscaEsquerdo; if (indicadores.piscaEsquerdo) indicadores.piscaDireito = false }, { indicadores.piscaDireito = !indicadores.piscaDireito; if (indicadores.piscaDireito) indicadores.piscaEsquerdo = false }, { toggleCharging() }, { mostrarPopup(it) }, { showTripPopup = !showTripPopup }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
-                InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, Modifier.weight(0.1f).padding(horizontal = 32.dp))
+                MainContentSection(s, velocidadeAnimadaState.value, tempAnimadaState.value, marchaAtual, motoLigada, velocidadeTarget, bateriaPercentagem, aCarregar, primaryText, secondaryText, uiElementColor, contrastWeight, unidadeVelocidade, velocidadeMaximaKmh, { motoLigada = it; onMotoLigadaChange(it) }, onMarchaChange, { velocidadeTarget = it; onVelocidadeChange(it) }, { indicadores.luz1 = !indicadores.luz1 }, { indicadores.luz2 = !indicadores.luz2; if (indicadores.luz2) { indicadores.luz3 = false; indicadores.luz8 = false } }, { indicadores.luz3 = !indicadores.luz3; if (indicadores.luz3) { indicadores.luz2 = false; indicadores.luz8 = false } }, { indicadores.luz4 = !indicadores.luz4 }, { indicadores.luz5 = !indicadores.luz5 }, { indicadores.luz6 = !indicadores.luz6 }, { indicadores.luz7 = !indicadores.luz7 }, { indicadores.luz8 = !indicadores.luz8; if (indicadores.luz8) { indicadores.luz2 = false; indicadores.luz3 = false } }, { indicadores.luz9 = !indicadores.luz9 }, { indicadores.luz10 = !indicadores.luz10 }, { indicadores.luz11 = !indicadores.luz11 }, { indicadores.luz12 = !indicadores.luz12 }, { indicadores.luz13 = !indicadores.luz13 }, { indicadores.piscaEsquerdo = !indicadores.piscaEsquerdo; if (indicadores.piscaEsquerdo) indicadores.piscaDireito = false }, { indicadores.piscaDireito = !indicadores.piscaDireito; if (indicadores.piscaDireito) indicadores.piscaEsquerdo = false }, { toggleCharging() }, { mostrarPopup(it) }, { showTripPopup = !showTripPopup }, Modifier.weight(0.57f).padding(horizontal = 32.dp))
+                InfoBarSection(odometro, autonomia, consumo, primaryText, iconColor, contrastWeight, densityMode, velocidadeAnimadaState.value, bateriaPercentagem, Modifier.weight(0.1f).padding(horizontal = 32.dp))
                 
                 val isRestricted = velocidadeAnimadaState.value > 0.1f || (motoLigada && marchaAtual != "P")
                 val runIfAllowed: (() -> Unit) -> Unit = { action ->
@@ -495,18 +502,24 @@ fun DashboardScreen(
                         LinearProgressIndicator(progress = { 0f }, modifier = Modifier.weight(1f).height(6.dp), color = Color(0xFF00E676), trackColor = secondaryText.copy(alpha = 0.15f))
                     }
                     Spacer(modifier = Modifier.height(2.dp))
+                    val distUnit = if (unidadeVelocidade == "mph") "mi" else "km"
+                    val speedUnit = if (unidadeVelocidade == "mph") "mph" else "km/h"
+                    val displayTripDist = if (unidadeVelocidade == "mph") tripDistancia / 1.60934 else tripDistancia.toDouble()
+                    val displayTripVelMedia = if (unidadeVelocidade == "mph") tripVelMedia / 1.60934 else tripVelMedia.toDouble()
+                    val displayTripVelMax = if (unidadeVelocidade == "mph") tripVelMax / 1.60934 else tripVelMax.toDouble()
+
                     // Data rows
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(s.tripDistance, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
-                        Text(String.format(Locale.US, "%.1f km", tripDistancia), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                        Text(String.format(Locale.US, "%.1f %s", displayTripDist, distUnit), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(s.avgSpeed, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
-                        Text(String.format(Locale.US, "%.0f km/h", tripVelMedia), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                        Text(String.format(Locale.US, "%.0f %s", displayTripVelMedia, speedUnit), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(s.maxSpeed, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
-                        Text(String.format(Locale.US, "%.0f km/h", tripVelMax), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                        Text(String.format(Locale.US, "%.0f %s", displayTripVelMax, speedUnit), color = primaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
                     }
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(s.tripTime, color = secondaryText, fontSize = 26.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
@@ -548,7 +561,7 @@ private fun TopBarSection(
         if (piscaEsqLigado || piscaDirLigado) { while (true) { piscaPulso = true; delay(400); piscaPulso = false; delay(400) } } else { piscaPulso = false }
     }
     LaunchedEffect(Unit) {
-        while (true) { currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("Europe/Lisbon") }.format(Date()); delay(1000) }
+        while (true) { currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()); delay(1000) }
     }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { try { currentTemp = "${JSONObject(URL("https://api.open-meteo.com/v1/forecast?latitude=41.3006&longitude=-7.7441&current_weather=true").readText()).getJSONObject("current_weather").getInt("temperature")}ºC" } catch (_: Exception) {} }
@@ -562,7 +575,7 @@ private fun TopBarSection(
     // Cores regulamentares fixas (ISO 2575 / UNECE R60)
     val corVerde = Color(0xFF00E676)
     val corAzul = Color(0xFF448AFF)
-    val corAmarelo = Color(0xFFFFD600)
+    val corAmarelo = Color(0xFFFFB300)
     val corVermelho = Color(0xFFFF1744)
 
     Box(modifier = modifier.fillMaxWidth().fillMaxHeight()) {
@@ -616,7 +629,7 @@ private fun TopBarSection(
 }
 
 @Composable
-private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit, onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, mostrarPopup: (String) -> Unit, onToggleTripPopup: () -> Unit, modifier: Modifier = Modifier) {
+private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnimada: Float, marcha: String, motoLigada: Boolean, velocidadeTarget: Float, bateriaPercentagem: Float, aCarregar: Boolean, primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight, unidadeVelocidade: String, velocidadeMaximaKmh: Int, onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit, onVelocidadeTargetChange: (Float) -> Unit, onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit, onToggleLuz5: () -> Unit, onToggleLuz6: () -> Unit, onToggleLuz7: () -> Unit, onToggleLuz8: () -> Unit, onToggleLuz9: () -> Unit, onToggleLuz10: () -> Unit, onToggleLuz11: () -> Unit, onToggleLuz12: () -> Unit, onToggleLuz13: () -> Unit, onTogglePiscaEsq: () -> Unit, onTogglePiscaDir: () -> Unit, onToggleCarga: () -> Unit, mostrarPopup: (String) -> Unit, onToggleTripPopup: () -> Unit, modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -680,8 +693,10 @@ private fun MainContentSection(s: AppStrings, velocidadeAnimada: Float, tempAnim
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.align(Alignment.Center).offset(x = 85.dp)) {
                 Text(marcha, color = primaryText, fontSize = 42.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
-                Text("${velocidadeAnimada.toInt()}", color = primaryText, fontSize = 120.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
-                Text("km/h", color = secondaryText, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+                val displayVelocidade = if (unidadeVelocidade == "mph") (velocidadeAnimada / 1.60934).toInt() else velocidadeAnimada.toInt()
+                val speedUnit = if (unidadeVelocidade == "mph") "mph" else "km/h"
+                Text("$displayVelocidade", color = primaryText, fontSize = 120.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+                Text(speedUnit, color = secondaryText, fontSize = 24.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
             }
         }
         Box(modifier = Modifier.weight(1.3f).fillMaxHeight().padding(16.dp), contentAlignment = Alignment.Center) { 
@@ -736,6 +751,7 @@ private fun SimplifiedContentSection(
     velocidadeAnimada: Float, marcha: String, bateriaPercentagem: Float, aCarregar: Boolean,
     motoLigada: Boolean, velocidadeTarget: Float,
     primaryText: Color, secondaryText: Color, accentColor: Color, contrastWeight: FontWeight,
+    unidadeVelocidade: String,
     onMotoLigadaChange: (Boolean) -> Unit, onMarchaChange: (String) -> Unit,
     onVelocidadeTargetChange: (Float) -> Unit,
     onToggleLuz1: () -> Unit, onToggleLuz2: () -> Unit, onToggleLuz3: () -> Unit, onToggleLuz4: () -> Unit,
@@ -795,8 +811,10 @@ private fun SimplifiedContentSection(
             // Marcha
             Text(marcha, color = secondaryText, fontSize = 56.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
             // Velocidade GIGANTE
-            Text("${velocidadeAnimada.toInt()}", color = primaryText, fontSize = 180.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
-            Text("km/h", color = secondaryText, fontSize = 32.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+            val displayVelocidade = if (unidadeVelocidade == "mph") (velocidadeAnimada / 1.60934).toInt() else velocidadeAnimada.toInt()
+            val speedUnit = if (unidadeVelocidade == "mph") "mph" else "km/h"
+            Text("$displayVelocidade", color = primaryText, fontSize = 180.sp, fontFamily = agencyFb, fontWeight = FontWeight.Bold)
+            Text(speedUnit, color = secondaryText, fontSize = 32.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
             Spacer(modifier = Modifier.height(24.dp))
             // Bateria simples
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -819,7 +837,20 @@ private fun SimplifiedContentSection(
 
 
 @Composable
-private fun InfoBarSection(odometro: Float, autonomia: Float, consumo: Float, primaryText: Color, iconColor: Color, contrastWeight: FontWeight, modifier: Modifier = Modifier) {
+private fun InfoBarSection(
+    odometro: Float, autonomia: Float, consumo: Float,
+    primaryText: Color, iconColor: Color, contrastWeight: FontWeight,
+    densityMode: String,
+    velocidade: Float,
+    bateriaPercentagem: Float,
+    modifier: Modifier = Modifier
+) {
+    // Em densidade FULL adicionamos 2 métricas técnicas a mais: voltagem e potência instantânea.
+    // Valores simulados — adapta quando tiveres telemetria real da bateria.
+    val isFull = densityMode == "FULL"
+    val voltagem = (60 + bateriaPercentagem * 0.36f).toInt()   // ~60-96V scale
+    val potenciaKw = (velocidade * 0.18f).toInt()              // ~rough power estimate
+
     Row(modifier = modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
         Icon(painter = painterResource(id = R.drawable.ic_odometro), contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(8.dp))
@@ -832,6 +863,14 @@ private fun InfoBarSection(odometro: Float, autonomia: Float, consumo: Float, pr
         Icon(painter = painterResource(id = R.drawable.ic_consumo), contentDescription = null, tint = iconColor, modifier = Modifier.size(24.dp))
         Spacer(modifier = Modifier.width(8.dp))
         Text(String.format(Locale.US, "%.1fkwh", consumo), color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+
+        // === Densidade FULL: voltagem + potência instantânea ===
+        if (isFull) {
+            Spacer(modifier = Modifier.width(16.dp)); Text("|", color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight); Spacer(modifier = Modifier.width(16.dp))
+            Text("$voltagem V", color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+            Spacer(modifier = Modifier.width(16.dp)); Text("|", color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight); Spacer(modifier = Modifier.width(16.dp))
+            Text("$potenciaKw kW", color = primaryText, fontSize = 22.sp, fontFamily = agencyFb, fontWeight = contrastWeight)
+        }
     }
 }
 
@@ -888,80 +927,44 @@ private fun BottomBarSection(modeIdx: Int, primaryText: Color, secondaryText: Co
 
 @Composable
 fun DashboardMap(modifier: Modifier = Modifier, motoLigada: Boolean, velocidade: Float, accentColor: Color) {
-    val context = LocalContext.current
-    
-    // Configurar o osmdroid
-    LaunchedEffect(Unit) {
-        Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", android.content.Context.MODE_PRIVATE))
-        // Evita que o userAgent padrão seja banido, embora o default sirva para testes.
-        Configuration.getInstance().userAgentValue = context.packageName
-    }
-    
-    // Estado do mapa
-    val mapState = remember {
-        MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(false) // Desativar toque para não interferir
-            controller.setZoom(16.5)
-            // Ponto central base (Lisboa)
-            controller.setCenter(GeoPoint(38.7223, -9.1393))
-            
-            // Filtro para escurecer o mapa, ficando num tom escuro/high-tech
-            val invertFilter = ColorMatrixColorFilter(
-                floatArrayOf(
-                    -0.8f,  0f,    0f,    0f,   255f, // Red
-                     0f,   -0.8f,  0f,    0f,   255f, // Green
-                     0f,    0f,   -0.8f,  0f,   255f, // Blue
-                     0f,    0f,    0f,    1f,   0f    // Alpha
-                )
-            )
-            overlayManager.tilesOverlay.setColorFilter(invertFilter)
-            
-            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-            isClickable = false
-        }
-    }
-    
-    // Simular movimento da mota para dar sensação de navegação contínua
+    // Simulação de localização baseada na velocidade (sem GPS aqui — é só uma vista do dashboard)
+    var simLat by remember { mutableStateOf(38.7223) }
+    val simLng by remember { mutableStateOf(-9.1393) }
+    var bearing by remember { mutableStateOf(0f) }
+
     LaunchedEffect(motoLigada) {
-        var currentLat = 38.7223
-        var currentLon = -9.1393
         while (motoLigada) {
-            val speed = velocidade // km/h
+            val speed = velocidade
             if (speed > 0.1f) {
-                // A cada 500ms, mover o mapa na simulação.
-                // 0.009 graus ~ 1km. Se formos a 60km/h -> 1km/min -> em 0.5s movemos 1/120 km.
-                val distKm = (speed / 3600f) * 0.5f 
-                val latDelta = distKm * 0.009
-                currentLat += latDelta
-                mapState.controller.animateTo(GeoPoint(currentLat, currentLon))
+                val distKm = (speed / 3600f) * 0.5f
+                simLat += distKm * 0.009
+                bearing = 0f
             }
             delay(500)
         }
     }
-    
+
+    val loc = com.example.displaymoto.ui.screens.navigation.WazeLocation(simLat, simLng, bearing)
+
     Box(modifier = modifier.clip(RoundedCornerShape(16.dp))) {
-        AndroidView(
-            factory = { mapState },
-            modifier = Modifier.fillMaxSize()
+        com.example.displaymoto.ui.screens.navigation.WazeStyleMap(
+            modifier = Modifier.fillMaxSize(),
+            location = loc,
+            accentColor = accentColor,
+            follow = true,
+            zoom = 16.5,
+            tilt = 50.0,
+            darkStyle = true,
+            showMyLocation = false
         )
-        // Gradiente escuro em cima e em baixo para misturar bem com o dashboard
         Box(
             modifier = Modifier.fillMaxSize().background(
                 Brush.verticalGradient(
-                    colors = listOf(Color.Black.copy(alpha=0.6f), Color.Transparent, Color.Black.copy(alpha=0.8f)),
+                    colors = listOf(Color.Black.copy(alpha = 0.6f), Color.Transparent, Color.Black.copy(alpha = 0.8f)),
                     startY = 0f,
                     endY = Float.POSITIVE_INFINITY
                 )
             )
-        )
-        
-        // Ícone da mota (posição atual)
-        Icon(
-            painter = painterResource(id = R.drawable.ic_nav), 
-            contentDescription = "Position",
-            tint = accentColor,
-            modifier = Modifier.align(Alignment.Center).size(48.dp).rotate(-45f)
         )
     }
 }

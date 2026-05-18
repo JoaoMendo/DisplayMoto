@@ -1,11 +1,19 @@
 package com.example.displaymoto
 
+import android.app.Activity
+import android.content.Context
+import android.hardware.Sensor
+import android.hardware.SensorEvent
+import android.hardware.SensorEventListener
+import android.hardware.SensorManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Surface
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
@@ -27,11 +35,22 @@ import androidx.compose.ui.unit.em
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
 import com.example.displaymoto.ui.screens.dashboard.*
 import com.example.displaymoto.ui.screens.dashboard.settings.*
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 val LocalAnimationMultiplier = compositionLocalOf { 1f }
 val LocalMissClickTracker = compositionLocalOf<() -> Unit> { {} }
@@ -39,6 +58,24 @@ val LocalMissClickTracker = compositionLocalOf<() -> Unit> { {} }
 enum class MotoScreen {
     DASHBOARD, NAVIGATION, SETTINGS, PERSONALIZATION, VISUAL_PREFERENCES, TOUCH, COGNITIVE_ASSISTANT, AUDIO_HAPTICS, EDIT_ICONS
 }
+
+/** Conversão de km/h para a unidade preferida. */
+fun converterVelocidade(kmh: Int, unidade: String): Int =
+    if (unidade == "mph") (kmh * 0.621371).toInt() else kmh
+
+/** Sufixo de unidade ("km/h" ou "mph"). */
+fun sufixoVelocidade(unidade: String): String = if (unidade == "mph") "mph" else "km/h"
+
+/** Conversão de metros para string formatada na unidade preferida. */
+fun formatarDistanciaPref(metros: Double, unidade: String): String =
+    if (unidade == "mph") {
+        val mi = metros / 1609.344
+        if (mi >= 0.1) String.format(java.util.Locale.US, "%.1f mi", mi)
+        else "${(metros * 3.28084).toInt()} ft"
+    } else {
+        if (metros >= 1000) String.format(java.util.Locale.US, "%.1f km", metros / 1000.0)
+        else "${metros.toInt()} m"
+    }
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -66,9 +103,9 @@ class MainActivity : ComponentActivity() {
             var currentAnimations by rememberSaveable { mutableStateOf("ON") }
 
             // AI Color States
-            var aiCorDestaque by remember { mutableStateOf<Color?>(null) }
-            var aiPrimaryText by remember { mutableStateOf<Color?>(null) }
-            var aiSecondaryText by remember { mutableStateOf<Color?>(null) }
+            var aiCorDestaque by remember { mutableStateOf<Color?>(Color.White) }
+            var aiPrimaryText by remember { mutableStateOf<Color?>(Color.White) }
+            var aiSecondaryText by remember { mutableStateOf<Color?>(Color.White) }
             
             // Pop-up de Confirmação da IA
             var originalUserPalette by remember { mutableStateOf<CompleteAppPalette?>(null) }
@@ -102,6 +139,27 @@ class MainActivity : ComponentActivity() {
             val s = adaptToLanguageComplexity(sBase, currentLanguage, appLanguage)
             val context = LocalContext.current
 
+            // === TTS para alertas falados (ABS, travão, bateria, etc.) ===
+            val ttsSpeaker = remember { TtsAlertSpeaker(context) }
+            DisposableEffect(Unit) { onDispose { ttsSpeaker.shutdown() } }
+            LaunchedEffect(appLanguage) { ttsSpeaker.setLocale(appLanguageToLocale(appLanguage)) }
+            LaunchedEffect(currentFeedback) {
+                ttsSpeaker.setAudioEnabled(currentFeedback == "AUDIO" || currentFeedback == "BOTH")
+            }
+            val speakAlert: (String, Boolean) -> Unit = remember(ttsSpeaker) {
+                { msg, grave -> ttsSpeaker.speak(msg, grave) }
+            }
+
+            // === Controlador unificado de feedback (beep + vibração + TTS + flash) ===
+            val alertController = remember { AlertFeedbackController(context, speakAlert) }
+            alertController.feedbackMode = currentFeedback
+            alertController.errorIntensity = currentErrorFeedback
+            alertController.visualAlertsOn = (currentVisualAlerts == "ON")
+            alertController.alertsFilter = currentAlerts
+            val alertFeedback: (String, Boolean) -> Unit = remember(alertController) {
+                { msg, grave -> alertController.trigger(msg, grave) }
+            }
+
             var globalMissedClicks by rememberSaveable { mutableIntStateOf(0) }
             val onMissClick: () -> Unit = {
                 globalMissedClicks++
@@ -121,7 +179,24 @@ class MainActivity : ComponentActivity() {
             var motoLigadaGlobal by rememberSaveable { mutableStateOf(false) }
             var velocidadeGlobal by rememberSaveable { mutableFloatStateOf(0f) }
             val indicadores = remember { IndicadoresState() }
-            
+            val rota = remember { com.example.displaymoto.ui.screens.navigation.RotaState() }
+
+            // === Settings regionais / veículo (persistidos) ===
+            var unidadeVelocidade by rememberSaveable { mutableStateOf("km/h") } // "km/h" ou "mph"
+            var velocidadeMaximaKmh by rememberSaveable { mutableIntStateOf(200) } // ECE R39: cobrir Vmax+20%
+            var autoBrightnessAtivo by rememberSaveable { mutableStateOf(true) }
+
+            // Auto-brilho por sensor de luz + sugestão automática de NIGHT MODE
+            // O utilizador pode forçar manualmente STANDARD/HIGH CONTRAST nas settings;
+            // só auto-trocamos contraste se estiver em "STANDARD" (não pisamos preferências).
+            AutoBrightnessEffect(
+                enabled = autoBrightnessAtivo,
+                onSuggestNightMode = { noite ->
+                    if (noite && currentContrast == "STANDARD") currentContrast = "NIGHT MODE"
+                    else if (!noite && currentContrast == "NIGHT MODE") currentContrast = "STANDARD"
+                }
+            )
+
             val velocidadeMota = velocidadeGlobal.toInt()
             val tempBatMota = if (motoLigadaGlobal) 50 else 0
             val tempMotorMota = if (motoLigadaGlobal) 50 else 0
@@ -132,6 +207,12 @@ class MainActivity : ComponentActivity() {
                 "NIGHT MODE" -> lerp(corPersonalizada, Color(0xFF121212), 0.90f)
                 else -> corPersonalizada
             }
+
+            val animFundoTema by animateColorAsState(targetValue = corDoFundoTema, animationSpec = tween(durationMillis = 400))
+            val animCorPersonalizada by animateColorAsState(targetValue = corPersonalizada, animationSpec = tween(durationMillis = 400))
+            val animCorDestaque by animateColorAsState(targetValue = aiCorDestaque ?: Color.White, animationSpec = tween(durationMillis = 400))
+            val animPrimaryText by animateColorAsState(targetValue = aiPrimaryText ?: Color.White, animationSpec = tween(durationMillis = 400))
+            val animSecondaryText by animateColorAsState(targetValue = aiSecondaryText ?: Color.LightGray, animationSpec = tween(durationMillis = 400))
 
             val modifierComFiltro = if (currentColorFilter == "OFF") {
                 Modifier.fillMaxSize()
@@ -183,20 +264,24 @@ class MainActivity : ComponentActivity() {
                 LocalDensity provides customDensity,
                 LocalTextStyle provides customTextStyle,
                 LocalAnimationMultiplier provides animationScale,
-                LocalMissClickTracker provides onMissClick
+                LocalMissClickTracker provides onMissClick,
+                LocalSpeakAlert provides speakAlert,
+                LocalAlertFeedback provides alertFeedback,
+                LocalHelpMode provides currentHelp
             ) {
+              Box(modifier = Modifier.fillMaxSize()) {
                 Surface(
                     modifier = modifierComFiltro.pointerInput(Unit) {
                         detectTapGestures(
                             onTap = { onMissClick() }
                         )
                     }, 
-                    color = corDoFundoTema
+                    color = animFundoTema
                 ) {
                     when (currentScreen) {
-                        MotoScreen.DASHBOARD -> DashboardScreen(s = s, marchaAtual = marchaGlobal, onMarchaChange = { marchaGlobal = it }, motoLigadaInicial = motoLigadaGlobal, velocidadeInicial = velocidadeGlobal, onMotoLigadaChange = { motoLigadaGlobal = it }, onVelocidadeChange = { velocidadeGlobal = it }, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, autonomiaInicial = autonomiaGlobal, aCarregarInicial = aCarregarGlobal, onBateriaChange = { auto, carregando -> autonomiaGlobal = auto; aCarregarGlobal = carregando }, onNavigateToSettings = { currentScreenName = MotoScreen.SETTINGS.name }, onNavigateToNavigation = { currentScreenName = MotoScreen.NAVIGATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, isSimplifiedMode = (currentDensity == "ESSENTIAL" && currentLanguage == "SIMPLE"), indicadores = indicadores)
-                        MotoScreen.NAVIGATION -> com.example.displaymoto.ui.screens.navigation.NavigationScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
-                        MotoScreen.SETTINGS -> SettingsScreen(s = s, currentAppLanguage = appLanguage, onAppLanguageChange = { appLanguageName = it.name }, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onCorFundoChange = { novaCor -> 
+                            MotoScreen.DASHBOARD -> DashboardScreen(s = s, marchaAtual = marchaGlobal, onMarchaChange = { marchaGlobal = it }, motoLigadaInicial = motoLigadaGlobal, velocidadeInicial = velocidadeGlobal, onMotoLigadaChange = { motoLigadaGlobal = it }, onVelocidadeChange = { velocidadeGlobal = it }, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, autonomiaInicial = autonomiaGlobal, aCarregarInicial = aCarregarGlobal, onBateriaChange = { auto, carregando -> autonomiaGlobal = auto; aCarregarGlobal = carregando }, onNavigateToSettings = { currentScreenName = MotoScreen.SETTINGS.name }, onNavigateToNavigation = { currentScreenName = MotoScreen.NAVIGATION.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, isSimplifiedMode = currentDensity == "ESSENTIAL" || velocidadeMota >= 80, densityMode = currentDensity, unidadeVelocidade = unidadeVelocidade, velocidadeMaximaKmh = velocidadeMaximaKmh, indicadores = indicadores)
+                            MotoScreen.NAVIGATION -> com.example.displaymoto.ui.screens.navigation.NavigationScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores, rota = rota)
+                        MotoScreen.SETTINGS -> SettingsScreen(s = s, currentAppLanguage = appLanguage, onAppLanguageChange = { appLanguageName = it.name }, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, onUnidadeChange = { unidadeVelocidade = it },                         onCorFundoChange = { novaCor -> 
                             corPersonalizadaArgb = novaCor.toArgb()
                             currentContrast = "STANDARD"
                             // Verificar se as cores atuais dos elementos ainda têm contraste suficiente
@@ -210,19 +295,18 @@ class MainActivity : ComponentActivity() {
                                     val primaryOk = GeminiColorHelper.verificarContraste(currentPrimary, novaCor, GeminiColorHelper.TipoComponente.TEXTO_GRANDE).aprovado
                                     val secondaryOk = GeminiColorHelper.verificarContraste(currentSecondary, novaCor, GeminiColorHelper.TipoComponente.TEXTO_NORMAL).aprovado
                                     if (!accentOk || !primaryOk || !secondaryOk) {
+                                        originalUserPalette = CompleteAppPalette(novaCor, currentPrimary, currentSecondary, currentAccent)
+                                        // Aplicar fallback local IMEDIATAMENTE (Cálculo heurístico inteligente de contraste WCAG AAA)
+                                        val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.BACKGROUND, novaCor)
+                                        corPersonalizadaArgb = fallback.background.toArgb()
+                                        aiCorDestaque = fallback.accentColor
+                                        aiPrimaryText = fallback.primaryText
+                                        aiSecondaryText = fallback.secondaryText
+                                        
+                                        android.widget.Toast.makeText(context, "IA a otimizar contraste do painel...", android.widget.Toast.LENGTH_SHORT).show()
+                                        
                                         pendingAiJob?.cancel()
                                         pendingAiJob = coroutineScope.launch {
-                                            originalUserPalette = CompleteAppPalette(novaCor, currentPrimary, currentSecondary, currentAccent)
-                                            // Aplicar fallback local IMEDIATAMENTE
-                                            val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.BACKGROUND, novaCor)
-                                            corPersonalizadaArgb = fallback.background.toArgb()
-                                            aiCorDestaque = fallback.accentColor
-                                            aiPrimaryText = fallback.primaryText
-                                            aiSecondaryText = fallback.secondaryText
-                                            
-                                            // Debounce: esperar antes de chamar a API
-                                            delay(500)
-                                            
                                             val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.BACKGROUND)
                                             if (adaptadas != null) {
                                                 corPersonalizadaArgb = adaptadas.background.toArgb()
@@ -230,13 +314,11 @@ class MainActivity : ComponentActivity() {
                                                 aiPrimaryText = adaptadas.primaryText
                                                 aiSecondaryText = adaptadas.secondaryText
                                             }
-                                            
                                             showAiColorPopup = true
                                         }
                                     }
                                     // Se tudo tem contraste → não mexer! Respeitar personalização.
                                 } else {
-                                    // Sem cores personalizadas ainda — aplicação completa com GUARDIÃO AAA
                                     val hexColor = String.format("#%06X", 0xFFFFFF and novaCor.toArgb())
                                     val localColors = GeminiColorHelper.enforceAAA(
                                         GeminiColorHelper.computeLocalContrastColors(hexColor), novaCor
@@ -244,9 +326,11 @@ class MainActivity : ComponentActivity() {
                                     aiCorDestaque = localColors.accentColor
                                     aiPrimaryText = localColors.primaryText
                                     aiSecondaryText = localColors.secondaryText
+                                    
+                                    android.widget.Toast.makeText(context, "IA a gerar contraste perfeito...", android.widget.Toast.LENGTH_SHORT).show()
+                                    
                                     pendingAiJob?.cancel()
                                     pendingAiJob = coroutineScope.launch {
-                                        delay(500)
                                         val adaptadas = GeminiColorHelper.adaptColorsToBackground(hexColor)
                                         if (adaptadas != null) {
                                             val safe = GeminiColorHelper.enforceAAA(adaptadas, novaCor)
@@ -262,20 +346,20 @@ class MainActivity : ComponentActivity() {
                             if (isIaActivatedGlobal) {
                                 val check = GeminiColorHelper.verificarContraste(novaCor, corPersonalizada, GeminiColorHelper.TipoComponente.INTERATIVO)
                                 if (!check.aprovado) {
+                                    val lastPrimary = aiPrimaryText ?: Color.White
+                                    val lastSecondary = aiSecondaryText ?: Color.LightGray
+                                    originalUserPalette = CompleteAppPalette(corPersonalizada, lastPrimary, lastSecondary, novaCor)
+                                    // Aplicar fallback local IMEDIATAMENTE (Cálculo heurístico inteligente de contraste WCAG AAA)
+                                    val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.ACCENT, corPersonalizada)
+                                    corPersonalizadaArgb = fallback.background.toArgb()
+                                    aiCorDestaque = fallback.accentColor
+                                    aiPrimaryText = fallback.primaryText
+                                    aiSecondaryText = fallback.secondaryText
+                                    
+                                    android.widget.Toast.makeText(context, "IA a otimizar contraste do painel...", android.widget.Toast.LENGTH_SHORT).show()
+                                    
                                     pendingAiJob?.cancel()
                                     pendingAiJob = coroutineScope.launch {
-                                        val lastPrimary = aiPrimaryText ?: Color.White
-                                        val lastSecondary = aiSecondaryText ?: Color.LightGray
-                                        originalUserPalette = CompleteAppPalette(corPersonalizada, lastPrimary, lastSecondary, novaCor)
-                                        // Aplicar fallback local IMEDIATAMENTE
-                                        val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.ACCENT, corPersonalizada)
-                                        corPersonalizadaArgb = fallback.background.toArgb()
-                                        aiCorDestaque = fallback.accentColor
-                                        aiPrimaryText = fallback.primaryText
-                                        aiSecondaryText = fallback.secondaryText
-                                        
-                                        delay(500)
-                                        
                                         val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.ACCENT)
                                         if (adaptadas != null) {
                                             corPersonalizadaArgb = adaptadas.background.toArgb()
@@ -283,7 +367,6 @@ class MainActivity : ComponentActivity() {
                                             aiPrimaryText = adaptadas.primaryText
                                             aiSecondaryText = adaptadas.secondaryText
                                         }
-                                        
                                         showAiColorPopup = true
                                     }
                                 }
@@ -293,19 +376,20 @@ class MainActivity : ComponentActivity() {
                             if (isIaActivatedGlobal) {
                                 val check = GeminiColorHelper.verificarContraste(novaCor, corPersonalizada, GeminiColorHelper.TipoComponente.TEXTO_GRANDE)
                                 if (!check.aprovado) {
+                                    val lastAccent = aiCorDestaque ?: Color.White
+                                    val lastSecondary = aiSecondaryText ?: Color.LightGray
+                                    originalUserPalette = CompleteAppPalette(corPersonalizada, novaCor, lastSecondary, lastAccent)
+                                    // Aplicar fallback local IMEDIATAMENTE (Cálculo heurístico inteligente de contraste WCAG AAA)
+                                    val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.PRIMARY_TEXT, corPersonalizada)
+                                    corPersonalizadaArgb = fallback.background.toArgb()
+                                    aiCorDestaque = fallback.accentColor
+                                    aiPrimaryText = fallback.primaryText
+                                    aiSecondaryText = fallback.secondaryText
+                                    
+                                    android.widget.Toast.makeText(context, "IA a otimizar contraste do painel...", android.widget.Toast.LENGTH_SHORT).show()
+                                    
                                     pendingAiJob?.cancel()
                                     pendingAiJob = coroutineScope.launch {
-                                        val lastAccent = aiCorDestaque ?: Color.White
-                                        val lastSecondary = aiSecondaryText ?: Color.LightGray
-                                        originalUserPalette = CompleteAppPalette(corPersonalizada, novaCor, lastSecondary, lastAccent)
-                                        val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.PRIMARY_TEXT, corPersonalizada)
-                                        corPersonalizadaArgb = fallback.background.toArgb()
-                                        aiCorDestaque = fallback.accentColor
-                                        aiPrimaryText = fallback.primaryText
-                                        aiSecondaryText = fallback.secondaryText
-                                        
-                                        delay(500)
-                                        
                                         val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.PRIMARY_TEXT)
                                         if (adaptadas != null) {
                                             corPersonalizadaArgb = adaptadas.background.toArgb()
@@ -313,7 +397,6 @@ class MainActivity : ComponentActivity() {
                                             aiPrimaryText = adaptadas.primaryText
                                             aiSecondaryText = adaptadas.secondaryText
                                         }
-                                        
                                         showAiColorPopup = true
                                     }
                                 }
@@ -323,19 +406,20 @@ class MainActivity : ComponentActivity() {
                             if (isIaActivatedGlobal) {
                                 val check = GeminiColorHelper.verificarContraste(novaCor, corPersonalizada, GeminiColorHelper.TipoComponente.TEXTO_NORMAL)
                                 if (!check.aprovado) {
+                                    val lastPrimary = aiPrimaryText ?: Color.White
+                                    val lastAccent = aiCorDestaque ?: Color.White
+                                    originalUserPalette = CompleteAppPalette(corPersonalizada, lastPrimary, novaCor, lastAccent)
+                                    // Aplicar fallback local IMEDIATAMENTE (Cálculo heurístico inteligente de contraste WCAG AAA)
+                                    val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.SECONDARY_TEXT, corPersonalizada)
+                                    corPersonalizadaArgb = fallback.background.toArgb()
+                                    aiCorDestaque = fallback.accentColor
+                                    aiPrimaryText = fallback.primaryText
+                                    aiSecondaryText = fallback.secondaryText
+                                    
+                                    android.widget.Toast.makeText(context, "IA a otimizar contraste do painel...", android.widget.Toast.LENGTH_SHORT).show()
+                                    
                                     pendingAiJob?.cancel()
                                     pendingAiJob = coroutineScope.launch {
-                                        val lastPrimary = aiPrimaryText ?: Color.White
-                                        val lastAccent = aiCorDestaque ?: Color.White
-                                        originalUserPalette = CompleteAppPalette(corPersonalizada, lastPrimary, novaCor, lastAccent)
-                                        val fallback = GeminiColorHelper.computeFallbackPalette(novaCor, GeminiColorHelper.ComponenteLock.SECONDARY_TEXT, corPersonalizada)
-                                        corPersonalizadaArgb = fallback.background.toArgb()
-                                        aiCorDestaque = fallback.accentColor
-                                        aiPrimaryText = fallback.primaryText
-                                        aiSecondaryText = fallback.secondaryText
-                                        
-                                        delay(500)
-                                        
                                         val adaptadas = GeminiColorHelper.adaptPaletteToUserChoice(novaCor, GeminiColorHelper.ComponenteLock.SECONDARY_TEXT)
                                         if (adaptadas != null) {
                                             corPersonalizadaArgb = adaptadas.background.toArgb()
@@ -343,22 +427,22 @@ class MainActivity : ComponentActivity() {
                                             aiPrimaryText = adaptadas.primaryText
                                             aiSecondaryText = adaptadas.secondaryText
                                         }
-                                        
                                         showAiColorPopup = true
                                     }
                                 }
                             }
-                        }, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, onNavigateToPersonalization = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
-                        MotoScreen.PERSONALIZATION -> PersonalizationSettings(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, isIaActivated = isIaActivatedGlobal, onIaChange = { isIaActivatedGlobal = it }, onNavigateBack = { currentScreenName = MotoScreen.SETTINGS.name }, onNavigateToVisual = { currentScreenName = MotoScreen.VISUAL_PREFERENCES.name }, onNavigateToTouch = { currentScreenName = MotoScreen.TOUCH.name }, onNavigateToCognitive = { currentScreenName = MotoScreen.COGNITIVE_ASSISTANT.name }, onNavigateToAudio = { currentScreenName = MotoScreen.AUDIO_HAPTICS.name }, onNavigateToEditIcons = { currentScreenName = MotoScreen.EDIT_ICONS.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
-                        MotoScreen.VISUAL_PREFERENCES -> VisualPreferencesScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, textSizeScale = textSizeScale, currentColorFilter = currentColorFilter, currentTextSpacing = currentTextSpacing, onTextSpacingChange = { currentTextSpacing = it }, currentAnimations = currentAnimations, onAnimationsChange = { currentAnimations = it }, onColorFilterChange = { currentColorFilter = it }, onTextSizeChange = { textSizeScale = it }, onContrastChange = { currentContrast = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
+                        }, onNavigateBack = { currentScreenName = MotoScreen.DASHBOARD.name }, onNavigateToPersonalization = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores)
+                        MotoScreen.PERSONALIZATION -> PersonalizationSettings(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, isIaActivated = isIaActivatedGlobal, onIaChange = { isIaActivatedGlobal = it }, onNavigateBack = { currentScreenName = MotoScreen.SETTINGS.name }, onNavigateToVisual = { currentScreenName = MotoScreen.VISUAL_PREFERENCES.name }, onNavigateToTouch = { currentScreenName = MotoScreen.TOUCH.name }, onNavigateToCognitive = { currentScreenName = MotoScreen.COGNITIVE_ASSISTANT.name }, onNavigateToAudio = { currentScreenName = MotoScreen.AUDIO_HAPTICS.name }, onNavigateToEditIcons = { currentScreenName = MotoScreen.EDIT_ICONS.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores)
+                        MotoScreen.VISUAL_PREFERENCES -> VisualPreferencesScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, textSizeScale = textSizeScale, currentColorFilter = currentColorFilter, currentTextSpacing = currentTextSpacing, onTextSpacingChange = { currentTextSpacing = it }, currentAnimations = currentAnimations, onAnimationsChange = { currentAnimations = it }, onColorFilterChange = { currentColorFilter = it }, onTextSizeChange = { textSizeScale = it }, onContrastChange = { currentContrast = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, autoBrightnessAtivo = autoBrightnessAtivo, onAutoBrightnessChange = { autoBrightnessAtivo = it }, velocidadeMaximaKmh = velocidadeMaximaKmh, onVelocidadeMaximaChange = { velocidadeMaximaKmh = it }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores)
 
-                        MotoScreen.TOUCH -> TouchScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentTouchArea = currentTouchArea, onTouchAreaChange = { currentTouchArea = it }, currentMethod = currentMethod, onMethodChange = { currentMethod = it }, currentResponseTime = currentResponseTime, onResponseTimeChange = { currentResponseTime = it }, currentErrorPrevention = currentErrorPrevention, onErrorPreventionChange = { currentErrorPrevention = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
+                        MotoScreen.TOUCH -> TouchScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, currentTouchArea = currentTouchArea, onTouchAreaChange = { currentTouchArea = it }, currentMethod = currentMethod, onMethodChange = { currentMethod = it }, currentResponseTime = currentResponseTime, onResponseTimeChange = { currentResponseTime = it }, currentErrorPrevention = currentErrorPrevention, onErrorPreventionChange = { currentErrorPrevention = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores)
 
-                        MotoScreen.COGNITIVE_ASSISTANT -> CognitiveAssistantScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentLanguage = currentLanguage, onLanguageChange = { currentLanguage = it }, currentDensity = currentDensity, onDensityChange = { currentDensity = it }, currentHelp = currentHelp, onHelpChange = { currentHelp = it }, currentAlerts = currentAlerts, onAlertsChange = { currentAlerts = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
+                        MotoScreen.COGNITIVE_ASSISTANT -> CognitiveAssistantScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, currentLanguage = currentLanguage, onLanguageChange = { currentLanguage = it }, currentDensity = currentDensity, onDensityChange = { currentDensity = it }, currentHelp = currentHelp, onHelpChange = { currentHelp = it }, currentAlerts = currentAlerts, onAlertsChange = { currentAlerts = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores)
 
-                        MotoScreen.AUDIO_HAPTICS -> AudioHapticsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, currentFeedback = currentFeedback, onFeedbackChange = { currentFeedback = it }, currentVisualAlerts = currentVisualAlerts, onVisualAlertsChange = { currentVisualAlerts = it }, currentErrorFeedback = currentErrorFeedback, onErrorFeedbackChange = { currentErrorFeedback = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
+                        MotoScreen.AUDIO_HAPTICS -> AudioHapticsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, currentFeedback = currentFeedback, onFeedbackChange = { currentFeedback = it }, currentVisualAlerts = currentVisualAlerts, onVisualAlertsChange = { currentVisualAlerts = it }, currentErrorFeedback = currentErrorFeedback, onErrorFeedbackChange = { currentErrorFeedback = it }, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores)
 
-                        MotoScreen.EDIT_ICONS -> EditIconsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = corDoFundoTema, corPersonalizada = corPersonalizada, currentContrast = currentContrast, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = aiCorDestaque, aiPrimaryText = aiPrimaryText, aiSecondaryText = aiSecondaryText, indicadores = indicadores)
+                        MotoScreen.EDIT_ICONS -> EditIconsScreen(s = s, velocidadeAtual = velocidadeMota, bateriaAtual = bateriaMota, aCarregarAtual = aCarregarGlobal, tempBateriaAtual = tempBatMota, tempMotorAtual = tempMotorMota, marchaAtual = marchaGlobal, corFundoAtual = animFundoTema, corPersonalizada = animCorPersonalizada, currentContrast = currentContrast, unidadeVelocidade = unidadeVelocidade, onNavigateBack = { currentScreenName = MotoScreen.PERSONALIZATION.name }, aiCorDestaque = animCorDestaque, aiPrimaryText = animPrimaryText, aiSecondaryText = animSecondaryText, indicadores = indicadores)
+
                     }
 
                     if (showAiColorPopup && originalUserPalette != null) {
@@ -393,7 +477,80 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                 }
+                // Overlay full-screen para "Alertas Visuais para Áudio" (acessibilidade auditiva)
+                ScreenFlashOverlay(alertController.flashTrigger)
+              }
             }
         }
     }
+}
+
+/**
+ * Auto-brightness controller. Lê o sensor de luz e ajusta o brilho da janela.
+ * Mapeamento (lux → brilho):
+ *   <10 lux (túnel/noite escura)  → 0.15
+ *   <100 lux (anoitecer)          → 0.30
+ *   <1000 lux (interior/nublado)  → 0.55
+ *   <10000 lux (dia normal)       → 0.85
+ *   ≥10000 lux (sol direto)       → 1.00
+ *
+ * Aplica também histerese ao trigger de NIGHT MODE (<5 lux entra, >50 lux sai)
+ * via callback opcional onSuggestNightMode.
+ */
+@Composable
+fun AutoBrightnessEffect(
+    enabled: Boolean = true,
+    onSuggestNightMode: ((Boolean) -> Unit)? = null
+) {
+    val context = LocalContext.current
+    val activity = context as? Activity ?: return
+
+    DisposableEffect(enabled) {
+        if (!enabled) return@DisposableEffect onDispose { }
+
+        val sm = context.getSystemService(Context.SENSOR_SERVICE) as? SensorManager
+        val sensor = sm?.getDefaultSensor(Sensor.TYPE_LIGHT)
+        if (sm == null || sensor == null) {
+            return@DisposableEffect onDispose { }
+        }
+
+        // Suavizar oscilações: média móvel curta + atualização só se diferença > 5%
+        var ultimoBrilho = -1f
+        var ultimoEstadoNoite = false
+
+        val listener = object : SensorEventListener {
+            override fun onSensorChanged(event: SensorEvent) {
+                val lux = event.values.firstOrNull() ?: return
+                val novoBrilho = mapearLuxParaBrilho(lux)
+                if (kotlin.math.abs(novoBrilho - ultimoBrilho) > 0.05f) {
+                    ultimoBrilho = novoBrilho
+                    val attrs = activity.window.attributes
+                    attrs.screenBrightness = novoBrilho
+                    activity.window.attributes = attrs
+                }
+
+                // Histerese p/ NIGHT MODE: entra <5 lux, sai >50 lux
+                val sugerirNoite = when {
+                    lux < 5f  -> true
+                    lux > 50f -> false
+                    else -> ultimoEstadoNoite
+                }
+                if (sugerirNoite != ultimoEstadoNoite) {
+                    ultimoEstadoNoite = sugerirNoite
+                    onSuggestNightMode?.invoke(sugerirNoite)
+                }
+            }
+            override fun onAccuracyChanged(s: Sensor?, a: Int) {}
+        }
+        sm.registerListener(listener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        onDispose { sm.unregisterListener(listener) }
+    }
+}
+
+private fun mapearLuxParaBrilho(lux: Float): Float = when {
+    lux < 10f     -> 0.15f
+    lux < 100f    -> 0.30f
+    lux < 1000f   -> 0.55f
+    lux < 10000f  -> 0.85f
+    else          -> 1.00f
 }

@@ -1,4 +1,4 @@
-﻿package com.example.displaymoto.ui.screens.dashboard.settings
+package com.example.displaymoto.ui.screens.dashboard.settings
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.font.FontWeight
 import com.example.displaymoto.AppStrings
 import com.example.displaymoto.LocalAnimationMultiplier
@@ -38,11 +39,16 @@ fun VisualPreferencesScreen(
     s: AppStrings,
     velocidadeAtual: Int = 0, bateriaAtual: Int = 85, aCarregarAtual: Boolean = false, tempBateriaAtual: Int = 30, tempMotorAtual: Int = 80, marchaAtual: String = "P",
     corFundoAtual: Color, corPersonalizada: Color, currentContrast: String, textSizeScale: Float,
+    unidadeVelocidade: String = "km/h",
     currentColorFilter: String, currentTextSpacing: String,
     currentAnimations: String, // NOVO
     onAnimationsChange: (String) -> Unit, // NOVO
     onTextSpacingChange: (String) -> Unit, onColorFilterChange: (String) -> Unit,
     onTextSizeChange: (Float) -> Unit, onContrastChange: (String) -> Unit, onNavigateBack: () -> Unit,
+    autoBrightnessAtivo: Boolean,
+    onAutoBrightnessChange: (Boolean) -> Unit,
+    velocidadeMaximaKmh: Int,
+    onVelocidadeMaximaChange: (Int) -> Unit,
     aiCorDestaque: Color? = null, aiPrimaryText: Color? = null, aiSecondaryText: Color? = null,
     indicadores: com.example.displaymoto.IndicadoresState = remember { com.example.displaymoto.IndicadoresState() }
 ) {
@@ -76,9 +82,10 @@ fun VisualPreferencesScreen(
     var popupCor by remember { mutableStateOf(Color.White) }
     var popupGrave by remember { mutableStateOf(false) }
     var popupVisivel by remember { mutableStateOf(false) }
-    fun mostrarPopup(msg: String, cor: Color, grave: Boolean) { popupMensagem = msg; popupCor = cor; popupGrave = grave; popupVisivel = true; if (grave) { try { val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100); tg.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tg.release() }, 600) } catch (_: Exception) {} } }
+    val alertFeedback = com.example.displaymoto.LocalAlertFeedback.current
+    fun mostrarPopup(msg: String, cor: Color, grave: Boolean) { popupMensagem = msg; popupCor = cor; popupGrave = grave; popupVisivel = true; alertFeedback(msg, grave) }
     LaunchedEffect(popupVisivel) { if (popupVisivel) { delay(3000); popupVisivel = false } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopup(s.indAbs, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz2 }.drop(1).collect { if (it) mostrarPopup(s.indMaximos, Color(0xFF42A5F5), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz3 }.drop(1).collect { if (it) mostrarPopup(s.indMedios, Color(0xFF00E676), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopup(s.indMil, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz5 }.drop(1).collect { if (it) mostrarPopup(s.indBrake, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz6 }.drop(1).collect { if (it) mostrarPopup(s.indBattery, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz7 }.drop(1).collect { if (it) mostrarPopup(s.indTempBat, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz8 }.drop(1).collect { if (it) mostrarPopup(s.indMinimos, Color(0xFF00E676), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopup(s.indEsp, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopup(s.indNeblina, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopup(s.indPneu, Color(0xFFFFD600), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz12 }.drop(1).collect { if (it) mostrarPopup(s.indTempMotor, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz13 }.drop(1).collect { if (it) mostrarPopup(s.indV2x, Color(0xFF42A5F5), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopup(s.indAbs, Color(0xFFFFB300), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz2 }.drop(1).collect { if (it) mostrarPopup(s.indMaximos, Color(0xFF42A5F5), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz3 }.drop(1).collect { if (it) mostrarPopup(s.indMedios, Color(0xFF00E676), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopup(s.indMil, Color(0xFFFFB300), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz5 }.drop(1).collect { if (it) mostrarPopup(s.indBrake, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz6 }.drop(1).collect { if (it) mostrarPopup(s.indBattery, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz7 }.drop(1).collect { if (it) mostrarPopup(s.indTempBat, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz8 }.drop(1).collect { if (it) mostrarPopup(s.indMinimos, Color(0xFF00E676), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopup(s.indEsp, Color(0xFFFFB300), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopup(s.indNeblina, Color(0xFFFFB300), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopup(s.indPneu, Color(0xFFFFB300), false) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz12 }.drop(1).collect { if (it) mostrarPopup(s.indTempMotor, Color(0xFFE53935), true) } }; LaunchedEffect(Unit) { snapshotFlow { indicadores.luz13 }.drop(1).collect { if (it) mostrarPopup(s.indV2x, Color(0xFF42A5F5), false) } }
 
     // O nosso multiplicador importado em tempo real!
     val animScale = LocalAnimationMultiplier.current
@@ -105,7 +112,7 @@ fun VisualPreferencesScreen(
     }
 
     LaunchedEffect(Unit) {
-        while (true) { currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("Europe/Lisbon") }.format(Date()); delay(1000) }
+        while (true) { currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date()); delay(1000) }
     }
     LaunchedEffect(Unit) {
         withContext(Dispatchers.IO) { try { currentTemp = "${JSONObject(URL("https://api.open-meteo.com/v1/forecast?latitude=41.3006&longitude=-7.7441&current_weather=true").readText()).getJSONObject("current_weather").getInt("temperature")}ºC" } catch (_: Exception) {} }
@@ -233,12 +240,65 @@ fun VisualPreferencesScreen(
 
                         LinhaDivisoria(accentColor)
 
+                        // === AUTO-BRILHO ===
+                        SettingItem(
+                            titulo = s.vehRegAutoBrightTitle,
+                            subtitulo = s.vehRegAutoBrightSub,
+                            primaryColor = primaryText, secondaryColor = secondaryText,
+                            onClick = { onAutoBrightnessChange(!autoBrightnessAtivo) },
+                            conteudo = {
+                                Switch(
+                                    checked = autoBrightnessAtivo,
+                                    onCheckedChange = onAutoBrightnessChange,
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = Color.White,
+                                        checkedTrackColor = accentColor,
+                                        uncheckedThumbColor = Color.White,
+                                        uncheckedTrackColor = secondaryText.copy(alpha = 0.3f)
+                                    ),
+                                    modifier = Modifier.scale(1.2f)
+                                )
+                            }
+                        )
+
+                        LinhaDivisoria(accentColor)
+
+                        // === VELOCIDADE MÁXIMA DO VELOCÍMETRO ===
+                        SettingItem(
+                            titulo = s.vehRegMaxSpeedTitle,
+                            subtitulo = s.vehRegMaxSpeedSub,
+                            primaryColor = primaryText, secondaryColor = secondaryText,
+                            conteudo = {
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth(0.5f)) {
+                                    val isMph = unidadeVelocidade == "mph"
+                                    val sliderValue = if (isMph) (velocidadeMaximaKmh / 1.60934f) else velocidadeMaximaKmh.toFloat()
+                                    val currentRounded = (Math.round(sliderValue / 10.0) * 10).toFloat()
+
+                                    Slider(
+                                        value = currentRounded,
+                                        onValueChange = {
+                                            val newKmh = if (isMph) (it * 1.60934).toInt() else it.toInt()
+                                            onVelocidadeMaximaChange(newKmh)
+                                        },
+                                        valueRange = if (isMph) 60f..180f else 100f..300f,
+                                        steps = if (isMph) 11 else 19, 
+                                        colors = SliderDefaults.colors(thumbColor = accentColor, activeTrackColor = accentColor, inactiveTrackColor = primaryText.copy(alpha = 0.3f)),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(text = "${currentRounded.toInt()} ${if (isMph) "mph" else "km/h"}", color = primaryText, fontSize = 28.sp, fontFamily = robotoFont)
+                                }
+                            }
+                        )
+
+                        LinhaDivisoria(accentColor)
+
                         Spacer(Modifier.height(32.dp))
                     }
                 }
             }
 
-            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = accentColor, iconColor = iconColor, textColor = primaryText, modifier = Modifier.weight(0.15f))
+            BottomStatusSection(v = velocidadeAtual, b = bateriaAtual, tB = tempBateriaAtual, tM = tempMotorAtual, m = marchaAtual, isCharging = aCarregarAtual, corDestaque = accentColor, iconColor = iconColor, textColor = primaryText, u = unidadeVelocidade, modifier = Modifier.weight(0.15f))
         }
 
         if (popupVisivel) {

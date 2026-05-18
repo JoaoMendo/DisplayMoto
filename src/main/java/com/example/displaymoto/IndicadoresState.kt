@@ -4,6 +4,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 
+/**
+ * Limiar de velocidade acima do qual consideramos que a moto está em movimento.
+ * Usar 5 km/h em vez de 0 evita falsos positivos por ruído de GPS / sensores
+ * (uma moto parada num semáforo pode oscilar 1-3 km/h).
+ */
+const val LIMIAR_EM_MOVIMENTO_KMH = 5
+
+/** Retorna true se a velocidade indica que a moto está em movimento — bloqueia UI complexa. */
+fun aMover(velocidadeKmh: Int): Boolean = velocidadeKmh > LIMIAR_EM_MOVIMENTO_KMH
+
 class IndicadoresState {
     var luz1 by mutableStateOf(false)
     var luz2 by mutableStateOf(false)

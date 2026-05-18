@@ -1,12 +1,8 @@
 package com.example.displaymoto.ui.screens.navigation
 
 import android.Manifest
-import android.content.Context
 import android.content.pm.PackageManager
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
-import android.os.Bundle
+import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
@@ -43,17 +39,21 @@ import com.example.displaymoto.AppStrings
 import com.example.displaymoto.R
 import com.example.displaymoto.ui.screens.dashboard.TopBarSectionSettings
 import com.example.displaymoto.ui.screens.dashboard.BottomStatusSection
-import org.osmdroid.config.Configuration
-import org.osmdroid.util.GeoPoint
-import org.osmdroid.views.MapView
-import org.osmdroid.tileprovider.tilesource.TileSourceFactory
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.ui.draw.clip
-import android.graphics.ColorMatrixColorFilter
+import androidx.compose.ui.text.input.ImeAction
 import java.text.SimpleDateFormat
 import java.util.*
 import com.example.displaymoto.IndicadoresState
+import com.example.displaymoto.aMover
+import kotlinx.coroutines.launch
 
 @Composable
 fun NavigationScreen(
@@ -71,9 +71,12 @@ fun NavigationScreen(
     aiCorDestaque: Color?,
     aiPrimaryText: Color?,
     aiSecondaryText: Color?,
-    indicadores: IndicadoresState
+    indicadores: IndicadoresState,
+    rota: RotaState,
+    unidadeVelocidade: String = "km/h"
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     var hasLocationPermission by remember {
         mutableStateOf(
             ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
@@ -90,71 +93,38 @@ fun NavigationScreen(
 
     LaunchedEffect(Unit) {
         if (!hasLocationPermission) {
-            launcher.launch(
-                arrayOf(
-                    Manifest.permission.ACCESS_FINE_LOCATION,
-                    Manifest.permission.ACCESS_COARSE_LOCATION
-                )
+            val pedidos = mutableListOf(
+                Manifest.permission.ACCESS_FINE_LOCATION,
+                Manifest.permission.ACCESS_COARSE_LOCATION
             )
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                pedidos.add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            launcher.launch(pedidos.toTypedArray())
         }
-        Configuration.getInstance().load(context, context.getSharedPreferences("osmdroid", Context.MODE_PRIVATE))
-        Configuration.getInstance().userAgentValue = context.packageName
     }
 
-    var currentLocation by remember { mutableStateOf(GeoPoint(38.7223, -9.1393)) } // Lisboa base
-    
-    DisposableEffect(hasLocationPermission) {
-        var locationManager: LocationManager? = null
-        val locationListener = object : LocationListener {
-            override fun onLocationChanged(location: Location) {
-                currentLocation = GeoPoint(location.latitude, location.longitude)
-            }
-            override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
-            override fun onProviderEnabled(provider: String) {}
-            override fun onProviderDisabled(provider: String) {}
+    val currentLocation = rememberWazeLocation(hasLocationPermission)
+
+    // Quando há rota ativa, recalcula se nos desviarmos mais de 60m da polyline.
+    LaunchedEffect(currentLocation, rota.aNavegar, rota.polylineLngLat) {
+        val loc = currentLocation ?: return@LaunchedEffect
+        if (!rota.aNavegar || rota.polylineLngLat.isEmpty()) return@LaunchedEffect
+        val maisProximo = rota.polylineLngLat.minOf { p ->
+            RoutingClient.distancia(loc.lat, loc.lng, p[1], p[0])
         }
-        
-        if (hasLocationPermission) {
+        if (maisProximo > 60.0) {
+            val destLat = rota.destinoLat ?: return@LaunchedEffect
+            val destLng = rota.destinoLng ?: return@LaunchedEffect
             try {
-                locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-                val provider = if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) LocationManager.GPS_PROVIDER else LocationManager.NETWORK_PROVIDER
-                val lastKnown = locationManager.getLastKnownLocation(provider)
-                if (lastKnown != null) {
-                    currentLocation = GeoPoint(lastKnown.latitude, lastKnown.longitude)
+                val nova = RoutingClient.calcularRota(loc.lat, loc.lng, destLat, destLng)
+                if (nova != null) {
+                    rota.polylineLngLat = nova.polylineLngLat
+                    rota.distanciaMetros = nova.distanciaMetros
+                    rota.etaSegundos = nova.duracaoSegundos
                 }
-                locationManager.requestLocationUpdates(provider, 1000L, 1f, locationListener)
-            } catch (e: SecurityException) {
-                // Ignore
-            }
+            } catch (_: Exception) {}
         }
-        
-        onDispose {
-            locationManager?.removeUpdates(locationListener)
-        }
-    }
-
-    val mapState = remember {
-        MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
-            setMultiTouchControls(true)
-            controller.setZoom(17.5)
-            
-            // Filtro escuro/high-tech
-            val invertFilter = ColorMatrixColorFilter(
-                floatArrayOf(
-                    -0.85f,  0f,     0f,     0f,   255f, 
-                     0f,    -0.85f,  0f,     0f,   255f, 
-                     0f,     0f,    -0.85f,  0f,   255f, 
-                     0f,     0f,     0f,     1f,   0f    
-                )
-            )
-            overlayManager.tilesOverlay.setColorFilter(invertFilter)
-            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
-        }
-    }
-    
-    LaunchedEffect(currentLocation) {
-        mapState.controller.animateTo(currentLocation)
     }
 
     val isLightBg = corPersonalizada.luminance() > 0.5f
@@ -178,36 +148,42 @@ fun NavigationScreen(
     var popupGrave by remember { mutableStateOf(false) }
     var popupVisivel by remember { mutableStateOf(false) }
 
+    val alertFeedback = com.example.displaymoto.LocalAlertFeedback.current
     fun mostrarPopupSettings(msg: String, cor: Color, grave: Boolean) {
         popupMensagem = msg; popupCor = cor; popupGrave = grave; popupVisivel = true
-        if (grave) { try { val tg = android.media.ToneGenerator(android.media.AudioManager.STREAM_ALARM, 100); tg.startTone(android.media.ToneGenerator.TONE_CDMA_ALERT_CALL_GUARD, 500); android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ tg.release() }, 600) } catch (_: Exception) {} }
+        alertFeedback(msg, grave)
     }
 
     LaunchedEffect(popupVisivel) { if (popupVisivel) { kotlinx.coroutines.delay(3000); popupVisivel = false } }
 
     // Watchers
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopupSettings(s.indAbs, Color(0xFFFFD600), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz1 }.drop(1).collect { if (it) mostrarPopupSettings(s.indAbs, Color(0xFFFFB300), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz2 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMaximos, Color(0xFF42A5F5), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz3 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMedios, Color(0xFF00E676), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMil, Color(0xFFFFD600), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz4 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMil, Color(0xFFFFB300), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz5 }.drop(1).collect { if (it) mostrarPopupSettings(s.indBrake, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz6 }.drop(1).collect { if (it) mostrarPopupSettings(s.indBattery, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz7 }.drop(1).collect { if (it) mostrarPopupSettings(s.indTempBat, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz8 }.drop(1).collect { if (it) mostrarPopupSettings(s.indMinimos, Color(0xFF00E676), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopupSettings(s.indEsp, Color(0xFFFFD600), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopupSettings(s.indNeblina, Color(0xFFFFD600), false) } }
-    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopupSettings(s.indPneu, Color(0xFFFFD600), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz9 }.drop(1).collect { if (it) mostrarPopupSettings(s.indEsp, Color(0xFFFFB300), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz10 }.drop(1).collect { if (it) mostrarPopupSettings(s.indNeblina, Color(0xFFFFB300), false) } }
+    LaunchedEffect(Unit) { snapshotFlow { indicadores.luz11 }.drop(1).collect { if (it) mostrarPopupSettings(s.indPneu, Color(0xFFFFB300), false) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz12 }.drop(1).collect { if (it) mostrarPopupSettings(s.indTempMotor, Color(0xFFE53935), true) } }
     LaunchedEffect(Unit) { snapshotFlow { indicadores.luz13 }.drop(1).collect { if (it) mostrarPopupSettings(s.indV2x, Color(0xFF42A5F5), false) } }
 
     LaunchedEffect(Unit) {
         while (true) { 
-            currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).apply { timeZone = TimeZone.getTimeZone("Europe/Lisbon") }.format(Date())
+            currentTime = SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date())
             kotlinx.coroutines.delay(1000) 
         }
     }
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) { try { currentTemp = "${org.json.JSONObject(java.net.URL("https://api.open-meteo.com/v1/forecast?latitude=41.3006&longitude=-7.7441&current_weather=true").readText()).getJSONObject("current_weather").getInt("temperature")}ºC" } catch (_: Exception) {} }
+    LaunchedEffect(currentLocation) {
+        val loc = currentLocation ?: return@LaunchedEffect
+        kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+            try {
+                currentTemp = "${org.json.JSONObject(java.net.URL("https://api.open-meteo.com/v1/forecast?latitude=${loc.lat}&longitude=${loc.lng}&current_weather=true").readText()).getJSONObject("current_weather").getInt("temperature")}ºC"
+            } catch (_: Exception) {}
+        }
     }
 
     var piscaPulso by remember { mutableStateOf(false) }
@@ -219,6 +195,19 @@ fun NavigationScreen(
 
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
+
+    // Estado local do overlay de pesquisa de destino
+    var searchVisivel by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var searchResultados by remember { mutableStateOf<List<RoutingClient.Local>>(emptyList()) }
+
+    // Driver-lock: se começar a andar com search aberto, fecha por segurança
+    LaunchedEffect(velocidadeAtual) {
+        if (aMover(velocidadeAtual) && searchVisivel) {
+            searchVisivel = false
+            rota.erro = "Pesquisa cancelada — moto em movimento"
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.fillMaxSize().background(corFundoAtual).focusRequester(focusRequester).focusable().onKeyEvent { event ->
@@ -262,22 +251,54 @@ fun NavigationScreen(
                 modifier = Modifier.weight(0.12f)
             )
 
-            // Main Content (Map)
+            // Main Content (Map - Waze style)
             Box(modifier = Modifier.weight(0.73f).fillMaxWidth().padding(horizontal = 32.dp)) {
-                Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(Color.DarkGray)) {
-                    AndroidView(
-                        factory = { mapState },
-                        modifier = Modifier.fillMaxSize()
+                Box(modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(24.dp)).background(Color(0xFF0a0a14))) {
+                    WazeStyleMap(
+                        modifier = Modifier.fillMaxSize(),
+                        location = currentLocation,
+                        accentColor = corDestaque,
+                        follow = true,
+                        zoom = 17.0,
+                        tilt = 55.0,
+                        darkStyle = false,
+                        routePolyline = rota.polylineLngLat,
+                        routeColor = corDestaque
                     )
-                    // Navigation Icon
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_nav), 
-                        contentDescription = "Position",
-                        tint = corDestaque,
-                        modifier = Modifier.align(Alignment.Center).size(64.dp)
-                    )
-                    
-                    // Return button inside map area or as a floating button
+
+                    // Botão de procurar destino (canto sup. esq.) — driver-lock: bloqueado em movimento
+                    val emMovimento = aMover(velocidadeAtual)
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopStart)
+                            .padding(16.dp)
+                            .clickable(role = Role.Button) {
+                                if (emMovimento) {
+                                    rota.erro = "Pare a moto para procurar destino"
+                                } else {
+                                    searchVisivel = true
+                                }
+                            }
+                            .background(
+                                if (emMovimento) Color(0xFF1A1A2E).copy(alpha = 0.5f)
+                                else Color(0xFF1A1A2E).copy(alpha = 0.85f),
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 14.dp, vertical = 10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Filled.Search, contentDescription = null, tint = corDestaque)
+                            Spacer(Modifier.padding(start = 8.dp))
+                            Text(
+                                rota.destinoNome?.take(28) ?: "Destino",
+                                color = corDestaque,
+                                fontSize = 18.sp,
+                                fontFamily = FontFamily(Font(R.font.roboto_regular))
+                            )
+                        }
+                    }
+
+                    // Return button
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
@@ -287,6 +308,62 @@ fun NavigationScreen(
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
                         Text(s.back, color = corDestaque, fontSize = 24.sp, fontFamily = FontFamily(Font(R.font.roboto_regular)))
+                    }
+
+                    // Barra de ETA na parte inferior do mapa quando há rota ativa
+                    if (rota.aNavegar && rota.polylineLngLat.isNotEmpty()) {
+                        Row(
+                            modifier = Modifier
+                                .align(Alignment.BottomCenter)
+                                .padding(16.dp)
+                                .background(Color(0xFF0F1A2E).copy(alpha = 0.92f), RoundedCornerShape(14.dp))
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(Icons.Filled.LocationOn, null, tint = corDestaque)
+                            Spacer(Modifier.padding(start = 10.dp))
+                            Text(formatarEta(rota.etaSegundos), color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, fontFamily = FontFamily(Font(R.font.agency_fb)))
+                            Spacer(Modifier.padding(start = 16.dp))
+                            Text(formatarDistancia(rota.distanciaMetros, unidadeVelocidade), color = corDestaque, fontSize = 20.sp, fontFamily = FontFamily(Font(R.font.agency_fb)))
+                            Spacer(Modifier.padding(start = 16.dp))
+                            Box(
+                                modifier = Modifier
+                                    .clickable(role = Role.Button) {
+                                        rota.cancelar()
+                                        LocationTrackingService.parar(context)
+                                    }
+                                    .background(Color(0xFF7A1C1C), RoundedCornerShape(8.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(Icons.Filled.Close, null, tint = Color.White, modifier = Modifier.size(20.dp))
+                            }
+                        }
+                    }
+
+                    // Indicador de loading
+                    if (rota.aCarregar) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .background(Color(0xFF1A1A2E).copy(alpha = 0.9f), RoundedCornerShape(12.dp))
+                                .padding(20.dp)
+                        ) {
+                            CircularProgressIndicator(color = corDestaque, strokeWidth = 3.dp)
+                        }
+                    }
+
+                    // Mensagem de erro
+                    rota.erro?.let { msg ->
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(top = 80.dp)
+                                .background(Color(0xFF7A1C1C).copy(alpha = 0.95f), RoundedCornerShape(10.dp))
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                                .clickable { rota.erro = null }
+                        ) {
+                            Text(msg, color = Color.White, fontSize = 16.sp)
+                        }
                     }
                 }
             }
@@ -302,8 +379,103 @@ fun NavigationScreen(
                 corDestaque = corDestaque,
                 iconColor = corDestaque,
                 textColor = primaryText,
+                u = unidadeVelocidade,
                 modifier = Modifier.weight(0.15f)
             )
+        }
+
+        // === Overlay de pesquisa de destino (Nominatim) ===
+        if (searchVisivel) {
+            Box(
+                modifier = Modifier.fillMaxSize().background(Color.Black.copy(alpha = 0.65f))
+                    .clickable(role = Role.Button) { searchVisivel = false },
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Column(
+                    modifier = Modifier
+                        .padding(top = 80.dp, start = 48.dp, end = 48.dp)
+                        .background(Color(0xFF0F1A2E), RoundedCornerShape(16.dp))
+                        .border(2.dp, corDestaque, RoundedCornerShape(16.dp))
+                        .padding(16.dp)
+                        .clickable(enabled = false) {}
+                ) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        placeholder = { Text("Procurar morada ou local", color = Color.White.copy(alpha = 0.5f)) },
+                        singleLine = true,
+                        textStyle = androidx.compose.ui.text.TextStyle(color = Color.White, fontSize = 18.sp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = corDestaque,
+                            unfocusedBorderColor = corDestaque.copy(alpha = 0.5f),
+                            cursorColor = corDestaque
+                        ),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                        keyboardActions = KeyboardActions(onSearch = {
+                            scope.launch {
+                                rota.aCarregar = true
+                                rota.erro = null
+                                try {
+                                    searchResultados = RoutingClient.pesquisarMorada(searchQuery)
+                                    if (searchResultados.isEmpty()) rota.erro = "Sem resultados"
+                                } catch (e: Exception) {
+                                    rota.erro = "Erro de rede"
+                                } finally {
+                                    rota.aCarregar = false
+                                }
+                            }
+                        })
+                    )
+                    Spacer(Modifier.padding(top = 8.dp))
+                    LazyColumn(modifier = Modifier.heightIn(max = 280.dp)) {
+                        items(searchResultados) { local ->
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(role = Role.Button) {
+                                        val origem = currentLocation
+                                        if (origem == null) {
+                                            rota.erro = "Sem GPS para origem"
+                                            return@clickable
+                                        }
+                                        searchVisivel = false
+                                        searchResultados = emptyList()
+                                        searchQuery = ""
+                                        rota.destinoLat = local.lat
+                                        rota.destinoLng = local.lng
+                                        rota.destinoNome = local.nome.substringBefore(",")
+                                        scope.launch {
+                                            rota.aCarregar = true
+                                            rota.erro = null
+                                            try {
+                                                val r = RoutingClient.calcularRota(
+                                                    origem.lat, origem.lng, local.lat, local.lng
+                                                )
+                                                if (r != null) {
+                                                    rota.polylineLngLat = r.polylineLngLat
+                                                    rota.distanciaMetros = r.distanciaMetros
+                                                    rota.etaSegundos = r.duracaoSegundos
+                                                    rota.aNavegar = true
+                                                    LocationTrackingService.iniciar(context)
+                                                } else {
+                                                    rota.erro = "Sem rota disponível"
+                                                }
+                                            } catch (_: Exception) {
+                                                rota.erro = "Erro de rede"
+                                            } finally {
+                                                rota.aCarregar = false
+                                            }
+                                        }
+                                    }
+                                    .padding(vertical = 10.dp, horizontal = 8.dp)
+                            ) {
+                                Text(local.nome, color = Color.White, fontSize = 16.sp, maxLines = 2)
+                            }
+                        }
+                    }
+                }
+            }
         }
 
         // === Popup de indicador ===
@@ -326,3 +498,22 @@ fun NavigationScreen(
         }
     }
 }
+
+private fun formatarEta(segundos: Double): String {
+    val total = segundos.toInt()
+    val h = total / 3600
+    val m = (total % 3600) / 60
+    return if (h > 0) "${h}h ${m}min" else "${m} min"
+}
+
+private fun formatarDistancia(metros: Double, u: String): String {
+    if (u == "mph") {
+        val miles = metros / 1609.34
+        return if (miles >= 0.1) String.format(Locale.US, "%.1f mi", miles)
+        else "${(metros * 1.09361).toInt()} yd"
+    } else {
+        return if (metros >= 1000) String.format(Locale.US, "%.1f km", metros / 1000.0)
+        else "${metros.toInt()} m"
+    }
+}
+
